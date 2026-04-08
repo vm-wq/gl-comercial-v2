@@ -1,0 +1,3671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>GL.COMERCIAL v2.0 — Greenlight Pet ER</title>
+  <meta name="theme-color" content="#223e5b"/>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://api.anthropic.com https://api.openai.com; img-src 'self' data: https:; font-src 'self' https:;"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="GL.COMERCIAL"/>
+
+  <!-- React & Babel -->
+  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              DEFAULT: '#223e5b',
+              light: '#2d5278',
+              dark: '#1a2f45',
+            },
+            gl: {
+              DEFAULT: '#46ac33',
+              light: '#a8d89a',
+              dark: '#358726',
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.js"></script>
+
+  <!-- bcryptjs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9fafb;
+      color: #1f2937;
+      padding-bottom: 80px;
+    }
+
+    html, body, #root {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* iOS safe area support */
+    @supports (padding: max(0px)) {
+      body { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+      .safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }
+    }
+
+    /* Bottom nav fixed positioning */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+      box-shadow: 0 -1px 3px rgba(0,0,0,0.1);
+      z-index: 40;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 50;
+    }
+
+    /* Slide sheets */
+    .sheet-enter {
+      animation: slideUp 0.3s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .drawer-enter {
+      animation: slideRight 0.3s ease-out;
+    }
+    @keyframes slideRight {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+
+    /* Focus ring for inputs */
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(70, 172, 51, 0.1), 0 0 0 2px #46ac33;
+    }
+
+    /* Smooth transitions */
+    button, a {
+      transition: all 0.2s ease;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // ══════════════════════════════════════════════════════════════
+    // CONSTANTS & CONFIGURATION
+    // ══════════════════════════════════════════════════════════════
+
+    const UNITS = [
+      { id:'jax', name:'Jacksonville', address:'14985 Old St. Augustine Rd, Units 106 & 107', city:'Jacksonville', state:'FL', zip:'32258', phone:'(904) 865-4860', lat:30.1655, lng:-81.5750 },
+      { id:'lkn', name:'Lake Nona', address:'11739 Narcoossee Road', city:'Orlando', state:'FL', zip:'32832', phone:'(407) 680-2320', lat:28.3700, lng:-81.2340 },
+      { id:'pln', name:'Plantation', address:'1811 & 1819 N. Pine Island RD', city:'Plantation', state:'FL', zip:'33322', phone:'(754) 223-6360', lat:26.1304, lng:-80.2524 },
+      { id:'wdl', name:'The Woodlands', address:'TBD', city:'The Woodlands', state:'TX', zip:'', phone:'', lat:30.1658, lng:-95.4613 },
+    ];
+
+    const CLIENT_STATUSES = ['New', 'Active', 'Inactive', 'Discarded'];
+
+    const CONTACT_REASONS = ['Follow-up', 'New Partnership', 'Issue Support', 'Feedback', 'Restock', 'Event'];
+
+    const VISIT_MATERIALS = [
+      'Flyer', 'Voucher/Cartão', 'Acrylic Display', 'Pens', 'Gift', 'Commercial Book'
+    ];
+
+    const CAMPAIGNS = [
+      { id:1, name:'Campanha 01 — Visitas Iniciais', nameEn:'Campaign 01 — Initial Visits', objective:'Visitar 100% das clínicas GP em raio de 5 milhas', week:'Semana 1', type:'B2B' },
+      { id:2, name:'Campanha 02 — Pet-Friendly', nameEn:'Campaign 02 — Pet-Friendly', objective:'Visitar locais pet-friendly e negócios do setor pet', week:'Semana 2', type:'B2B' },
+      { id:3, name:'Campanha 03 — Cartão Rastreável', nameEn:'Campaign 03 — Trackable Card', objective:'Implementar cartão de desconto com código rastreável', week:'Semana 3', type:'B2B' },
+      { id:5, name:'Campanha 05 — Restock & Relationship', nameEn:'Campaign 05 — Restock & Relationship', objective:'Proteger e expandir a base ativa', week:'Contínua', type:'B2B' },
+      { id:6, name:'Campanha 06 — Holiday Campaigns', nameEn:'Campaign 06 — Holiday Campaigns', objective:'Surpreender parceiros em feriados', week:'Feriados', type:'B2B' },
+    ];
+
+    // ══════════════════════════════════════════════════════════════
+    // TRANSLATIONS
+    // ══════════════════════════════════════════════════════════════
+
+    const translations = {
+      pt: {
+        // Navigation
+        welcome: 'Bem-vindo',
+        home: 'Início', calls: 'Ligações', clinics: 'Clínicas', businesses: 'Negócios',
+        visits: 'Visitas', agenda: 'Agenda', nps: 'NPS', reports: 'Relatórios',
+        campaigns: 'Campanhas', manager: 'Gerencial', settings: 'Config', more: 'Mais',
+
+        // Login
+        login: 'Entrar', email: 'E-mail', password: 'Senha',
+        loginTitle: 'GL.COMERCIAL v2.0',
+        loginSubtitle: 'Greenlight Pet ER — Sistema Comercial',
+        admin: 'Administrador', employee: 'Funcionário',
+        invalidCredentials: 'E-mail ou senha inválidos',
+
+        // Common
+        save: 'Salvar', cancel: 'Cancelar', delete: 'Excluir', edit: 'Editar',
+        search: 'Buscar...', add: 'Adicionar', close: 'Fechar', back: 'Voltar',
+        name: 'Nome', phone: 'Telefone', date: 'Data', notes: 'Observações',
+        region: 'Região', status: 'Status', actions: 'Ações', newCall: 'Nova Ligação',
+        newVisit: 'Nova Visita', newSurvey: 'Nova Pesquisa', newClinic: 'Nova Clínica',
+        newBusiness: 'Novo Negócio', entity: 'Entidade', reason: 'Motivo',
+        summary: 'Resumo', createdAt: 'Criado em', lastUpdated: 'Última atualização',
+
+        // Clinic fields
+        clinicName: 'Nome da Clínica', address: 'Endereço', owner: 'Proprietário',
+        vetName: 'Médico Veterinário', managerName: 'Gerente', receptionistName: 'Recepcionista',
+        googleScore: 'Avaliação Google', volume: 'Volume Mensal', lastVisit: 'Última Visita',
+        npsAverage: 'NPS Médio', contactPerson: 'Pessoa de Contato',
+
+        // Business fields
+        businessName: 'Nome do Negócio', businessType: 'Tipo de Negócio', contactName: 'Nome do Contato',
+
+        // Visit fields
+        campaign: 'Campanha', materialsDelivered: 'Materiais Entregues', materialsCollected: 'Materiais Coletados',
+        visitNotes: 'Observações da Visita', photos: 'Fotos', observations: 'Observações',
+
+        // NPS
+        respondent: 'Respondente', respondentRole: 'Cargo', npsScore: 'Nota NPS',
+        justification: 'Justificativa', positives: 'Pontos Positivos', negatives: 'Pontos Negativos',
+        suggestions: 'Sugestões', comments: 'Comentários', promoter: 'Promotor', passive: 'Passivo',
+        detractor: 'Detrator', npsAvg: 'NPS Médio', promoters: 'Promotores', passives: 'Passivos',
+        detractors: 'Detradores',
+        serviceQuality: 'Qualidade do Serviço', responseTime: 'Tempo de Resposta',
+        additionalComments: 'Comentários Adicionais',
+
+        // Manager
+        manager: 'Gerente', addStop: 'Adicionar Parada', optimizeRoute: 'Otimizar Rota',
+        routeStops: 'Paradas da Rota',
+
+        // Reports
+        externalReports: 'Relatórios Externos', internalReports: 'Relatórios Internos',
+        consolidatedReports: 'Relatórios Consolidados', allTime: 'Todo Período',
+        thisMonth: 'Este Mês', thisQuarter: 'Este Trimestre', totalClinics: 'Total de Clínicas',
+        totalBusinesses: 'Total de Negócios', visitsThisMonth: 'Visitas Este Mês',
+        callsThisMonth: 'Ligações Este Mês', pendingFollowups: 'Follow-ups Pendentes',
+
+        // Settings
+        apiKeys: 'Chaves de API', claudeApiKey: 'Chave API Claude', openaiApiKey: 'Chave API OpenAI',
+        userInfo: 'Informações do Usuário', unitAssignment: 'Atribuição de Unidade',
+        languagePreference: 'Idioma', exportData: 'Exportar Dados', importData: 'Importar Dados',
+        logout: 'Sair',
+
+        // Admin
+        adminPanel: 'Painel Admin', userManagement: 'Gerenciar Usuários', formConfiguration: 'Configurar Formulários',
+        addUser: 'Adicionar Usuário', editUser: 'Editar Usuário', contactReasons: 'Motivos de Contato',
+        visitMaterials: 'Materiais de Visita', regions: 'Regiões', campaignList: 'Lista de Campanhas',
+
+        // AI Chat
+        askAI: 'Pergunte à IA', sendMessage: 'Enviar', typeMessage: 'Digite sua pergunta...',
+        aiAssist: 'Assistência IA',
+
+        // Status badges
+        newStatus: 'Novo', activeStatus: 'Ativo', inactiveStatus: 'Inativo', discardedStatus: 'Descartado',
+
+        // Empty states
+        noData: 'Sem dados', noResults: 'Nenhum resultado encontrado',
+
+        // Time
+        today: 'Hoje', yesterday: 'Ontem', thisWeek: 'Esta Semana', thisMonth: 'Este Mês',
+
+        // Phase 2 - Sales Scripts
+        scripts: 'Roteiros de Venda', newScript: 'Novo Roteiro', scriptCategory: 'Categoria',
+        scriptTitle: 'Título', scriptSteps: 'Passos', scriptTips: 'Dicas',
+        firstVisit: 'Primeira Visita — Apresentação GL Pet ER',
+        followUpVisit: 'Follow-up Pós-Visita',
+        objectionEmergency: 'Objeção: Já Temos Emergência',
+        reactivatePartner: 'Reativação de Parceiro Inativo',
+        partnershipProposal: 'Proposta de Parceria',
+
+        // Voice notes
+        startRecording: 'Iniciar Gravação', stopRecording: 'Parar Gravação',
+        recordingVoiceNote: 'Gravando... (vermelho = ativo)', voiceNote: 'Nota de Voz',
+
+        // Phase 3 - Routes
+        routes: 'Rotas', newRoute: 'Nova Rota', routeDate: 'Data da Rota',
+        teamMember: 'Membro da Equipe', addStop: 'Adicionar Parada', totalStops: 'Total de Paradas',
+        estimatedTime: 'Tempo Estimado', routeSummary: 'Resumo da Rota',
+
+        // Phase 3 - Routine Form
+        routineForm: 'Formulário de Rotina', cleaningOrganization: 'Limpeza e Organização Geral',
+        marketingMaterial: 'Aparência do Material de Marketing GL',
+        materialVisible: 'Material em Local Visível', knowledgeServices: 'Equipe Conhece Serviços GL',
+        referralIndication: 'Equipe Indica GL Quando Perguntada', monthlyReferrals: 'Volume de Referrals Mês',
+        teamReceptivity: 'Receptividade da Equipe', receptionWaitTime: 'Tempo de Espera na Recepção',
+        emergencyServices: 'Comunicação sobre Serviços de Emergência', competitors: 'Presença de Competidores',
+        relationshipQuality: 'Qualidade do Relacionamento', campaignInterest: 'Interesse em Campanhas Futuras',
+        partnershipRating: 'Avaliação Geral da Parceria', uploadPhoto: 'Enviar Foto', managerVisit: 'Visita Gerencial',
+        fillRoutineForm: 'Preencher Formulário de Rotina',
+
+        // Phase 3 - Team Management
+        teamManagement: 'Gestão de Equipe', addTeamMember: 'Adicionar Membro', editTeamMember: 'Editar Membro',
+        role: 'Função', color: 'Cor', weeklyGoal: 'Meta Semanal', memberStats: 'Estatísticas do Membro',
+        callsCount: 'Total Ligações', visitsCount: 'Visitas Este Mês',
+
+        // Phase 3 - Calendar
+        calendar: 'Calendário', monthView: 'Visualização Mensal', dayActivities: 'Atividades do Dia',
+
+        // Phase 4 - Intelligence Features
+        suggestions: 'Sugestões IA', aiSuggestions: 'Sugestões Inteligentes', benchmarks: 'Comparativas',
+        lastMonthComparison: 'Comparação Mês Anterior', trendUp: 'Em Alta', trendDown: 'Em Baixa',
+        noVisitsFor30Days: 'clínicas sem visita há mais de 30 dias',
+        npsDropped: 'NPS médio caiu para',
+        reviewDetractors: 'revisar clínicas detratoras',
+        pendingFollowupsWeek: 'follow-ups pendentes esta semana',
+        monthlyChart: 'Gráfico Últimos 6 Meses', npsAvgTrend: 'Tendência de NPS Médio',
+        topClinicsByVisits: 'Principais Clínicas por Visitas', similarProspects: 'Clínicas Similares',
+        similar: 'Similar', region: 'Região', sameRegionStatus: 'Mesma região e status',
+        exportJson: 'Exportar JSON', exportCsv: 'Exportar CSV', importJson: 'Importar JSON',
+        selectJsonFile: 'Selecionar arquivo JSON', dataImported: 'Dados importados com sucesso',
+        exportedSuccessfully: 'Exportado com sucesso',
+      },
+      en: {
+        // Navigation
+        welcome: 'Welcome',
+        home: 'Home', calls: 'Calls', clinics: 'Clinics', businesses: 'Businesses',
+        visits: 'Visits', agenda: 'Agenda', nps: 'NPS', reports: 'Reports',
+        campaigns: 'Campaigns', manager: 'Manager', settings: 'Settings', more: 'More',
+
+        // Login
+        login: 'Sign In', email: 'Email', password: 'Password',
+        loginTitle: 'GL.COMERCIAL v2.0',
+        loginSubtitle: 'Greenlight Pet ER — Commercial System',
+        admin: 'Administrator', employee: 'Employee',
+        invalidCredentials: 'Invalid email or password',
+
+        // Common
+        save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit',
+        search: 'Search...', add: 'Add', close: 'Close', back: 'Back',
+        name: 'Name', phone: 'Phone', date: 'Date', notes: 'Notes',
+        region: 'Region', status: 'Status', actions: 'Actions', newCall: 'New Call',
+        newVisit: 'New Visit', newSurvey: 'New Survey', newClinic: 'New Clinic',
+        newBusiness: 'New Business', entity: 'Entity', reason: 'Reason',
+        summary: 'Summary', createdAt: 'Created at', lastUpdated: 'Last updated',
+
+        // Clinic fields
+        clinicName: 'Clinic Name', address: 'Address', owner: 'Owner',
+        vetName: 'Veterinarian', managerName: 'Manager', receptionistName: 'Receptionist',
+        googleScore: 'Google Rating', volume: 'Monthly Volume', lastVisit: 'Last Visit',
+        npsAverage: 'NPS Average', contactPerson: 'Contact Person',
+
+        // Business fields
+        businessName: 'Business Name', businessType: 'Business Type', contactName: 'Contact Name',
+
+        // Visit fields
+        campaign: 'Campaign', materialsDelivered: 'Materials Delivered', materialsCollected: 'Materials Collected',
+        visitNotes: 'Visit Notes', photos: 'Photos', observations: 'Observations',
+
+        // NPS
+        respondent: 'Respondent', respondentRole: 'Role', npsScore: 'NPS Score',
+        justification: 'Justification', positives: 'Positives', negatives: 'Negatives',
+        suggestions: 'Suggestions', comments: 'Comments', promoter: 'Promoter', passive: 'Passive',
+        detractor: 'Detractor', npsAvg: 'NPS Avg', promoters: 'Promoters', passives: 'Passives',
+        detractors: 'Detractors',
+        serviceQuality: 'Service Quality', responseTime: 'Response Time',
+        additionalComments: 'Additional Comments',
+
+        // Manager
+        manager: 'Manager', addStop: 'Add Stop', optimizeRoute: 'Optimize Route',
+        routeStops: 'Route Stops',
+
+        // Reports
+        externalReports: 'External Reports', internalReports: 'Internal Reports',
+        consolidatedReports: 'Consolidated Reports', allTime: 'All Time',
+        thisMonth: 'This Month', thisQuarter: 'This Quarter', totalClinics: 'Total Clinics',
+        totalBusinesses: 'Total Businesses', visitsThisMonth: 'Visits This Month',
+        callsThisMonth: 'Calls This Month', pendingFollowups: 'Pending Follow-ups',
+
+        // Settings
+        apiKeys: 'API Keys', claudeApiKey: 'Claude API Key', openaiApiKey: 'OpenAI API Key',
+        userInfo: 'User Information', unitAssignment: 'Unit Assignment',
+        languagePreference: 'Language', exportData: 'Export Data', importData: 'Import Data',
+        logout: 'Sign Out',
+
+        // Admin
+        adminPanel: 'Admin Panel', userManagement: 'Manage Users', formConfiguration: 'Configure Forms',
+        addUser: 'Add User', editUser: 'Edit User', contactReasons: 'Contact Reasons',
+        visitMaterials: 'Visit Materials', regions: 'Regions', campaignList: 'Campaign List',
+
+        // AI Chat
+        askAI: 'Ask AI', sendMessage: 'Send', typeMessage: 'Type your question...',
+        aiAssist: 'AI Assist',
+
+        // Status badges
+        newStatus: 'New', activeStatus: 'Active', inactiveStatus: 'Inactive', discardedStatus: 'Discarded',
+
+        // Empty states
+        noData: 'No data', noResults: 'No results found',
+
+        // Time
+        today: 'Today', yesterday: 'Yesterday', thisWeek: 'This Week', thisMonth: 'This Month',
+
+        // Phase 2 - Sales Scripts
+        scripts: 'Sales Scripts', newScript: 'New Script', scriptCategory: 'Category',
+        scriptTitle: 'Title', scriptSteps: 'Steps', scriptTips: 'Tips',
+        firstVisit: 'First Visit — GL Pet ER Introduction',
+        followUpVisit: 'Post-Visit Follow-up',
+        objectionEmergency: 'Objection: We Already Have Emergency',
+        reactivatePartner: 'Inactive Partner Reactivation',
+        partnershipProposal: 'Partnership Proposal',
+
+        // Voice notes
+        startRecording: 'Start Recording', stopRecording: 'Stop Recording',
+        recordingVoiceNote: 'Recording... (red = active)', voiceNote: 'Voice Note',
+
+        // Phase 3 - Routes
+        routes: 'Routes', newRoute: 'New Route', routeDate: 'Route Date',
+        teamMember: 'Team Member', addStop: 'Add Stop', totalStops: 'Total Stops',
+        estimatedTime: 'Estimated Time', routeSummary: 'Route Summary',
+
+        // Phase 3 - Routine Form
+        routineForm: 'Routine Form', cleaningOrganization: 'Cleaning and General Organization',
+        marketingMaterial: 'Appearance of GL Marketing Material',
+        materialVisible: 'Material in Visible Location', knowledgeServices: 'Team Knows GL Services',
+        referralIndication: 'Team Indicates GL When Asked', monthlyReferrals: 'Monthly Referrals Volume',
+        teamReceptivity: 'Team Receptivity', receptionWaitTime: 'Reception Wait Time',
+        emergencyServices: 'Communication About Emergency Services', competitors: 'Presence of Competitors',
+        relationshipQuality: 'Relationship Quality', campaignInterest: 'Interest in Future Campaigns',
+        partnershipRating: 'Overall Partnership Rating', uploadPhoto: 'Upload Photo', managerVisit: 'Manager Visit',
+        fillRoutineForm: 'Fill Routine Form',
+
+        // Phase 3 - Team Management
+        teamManagement: 'Team Management', addTeamMember: 'Add Team Member', editTeamMember: 'Edit Member',
+        role: 'Role', color: 'Color', weeklyGoal: 'Weekly Goal', memberStats: 'Member Statistics',
+        callsCount: 'Total Calls', visitsCount: 'Visits This Month',
+
+        // Phase 3 - Calendar
+        calendar: 'Calendar', monthView: 'Month View', dayActivities: 'Day Activities',
+
+        // Phase 4 - Intelligence Features
+        suggestions: 'AI Suggestions', aiSuggestions: 'Smart Suggestions', benchmarks: 'Benchmarks',
+        lastMonthComparison: 'vs Last Month', trendUp: 'Up', trendDown: 'Down',
+        noVisitsFor30Days: 'clinics not visited in 30+ days',
+        npsDropped: 'NPS avg dropped to',
+        reviewDetractors: 'review detractor clinics',
+        pendingFollowupsWeek: 'pending follow-ups this week',
+        monthlyChart: 'Chart Last 6 Months', npsAvgTrend: 'NPS Average Trend',
+        topClinicsByVisits: 'Top Clinics by Visits', similarProspects: 'Similar Clinics',
+        similar: 'Similar', region: 'Region', sameRegionStatus: 'Same region and status',
+        exportJson: 'Export JSON', exportCsv: 'Export CSV', importJson: 'Import JSON',
+        selectJsonFile: 'Select JSON file', dataImported: 'Data imported successfully',
+        exportedSuccessfully: 'Exported successfully',
+      }
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // LANGUAGE CONTEXT
+    // ══════════════════════════════════════════════════════════════
+
+    const LangContext = React.createContext();
+
+    const useLang = () => {
+      const ctx = React.useContext(LangContext);
+      if (!ctx) throw new Error('useLang must be used within LangProvider');
+      return ctx;
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // AUTH CONTEXT
+    // ══════════════════════════════════════════════════════════════
+
+    const AuthContext = React.createContext();
+
+    const useAuth = () => {
+      const ctx = React.useContext(AuthContext);
+      if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+      return ctx;
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // INDEXEDDB UTILITIES
+    // ══════════════════════════════════════════════════════════════
+
+    const DB_NAME = 'GLComercialV2';
+    const DB_VERSION = 3;
+
+    const initDB = () => {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve(req.result);
+
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+
+          const stores = [
+            { name: 'users', keyPath: 'id' },
+            { name: 'entities', keyPath: 'id' },
+            { name: 'calls', keyPath: 'id' },
+            { name: 'visits', keyPath: 'id' },
+            { name: 'nps', keyPath: 'id' },
+            { name: 'routes', keyPath: 'id' },
+            { name: 'feed', keyPath: 'id' },
+            { name: 'managerVisits', keyPath: 'id' },
+            { name: 'config', keyPath: 'id' },
+            { name: 'chatSessions', keyPath: 'id' },
+            { name: 'protocols', keyPath: 'id' },
+          ];
+
+          stores.forEach(store => {
+            if (!db.objectStoreNames.contains(store.name)) {
+              const s = db.createObjectStore(store.name, { keyPath: store.keyPath });
+              // Add indexes for performance
+              if (store.name === 'entities') {
+                s.createIndex('type', 'type', { unique: false });
+                s.createIndex('region', 'region', { unique: false });
+              }
+              if (store.name === 'calls') {
+                s.createIndex('entityId', 'entityId', { unique: false });
+                s.createIndex('date', 'date', { unique: false });
+                s.createIndex('userId', 'userId', { unique: false });
+              }
+              if (store.name === 'visits') {
+                s.createIndex('clinicId', 'clinicId', { unique: false });
+                s.createIndex('date', 'date', { unique: false });
+              }
+              if (store.name === 'nps') {
+                s.createIndex('entityId', 'entityId', { unique: false });
+              }
+              if (store.name === 'users') {
+                s.createIndex('email', 'email', { unique: true });
+              }
+            }
+          });
+        };
+      });
+    };
+
+    const dbAdd = (db, storeName, data) => {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readwrite');
+        const req = tx.objectStore(storeName).add(data);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve(req.result);
+      });
+    };
+
+    const dbPut = (db, storeName, data) => {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readwrite');
+        const req = tx.objectStore(storeName).put(data);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve(req.result);
+      });
+    };
+
+    const dbGetAll = (db, storeName) => {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readonly');
+        const req = tx.objectStore(storeName).getAll();
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve(req.result);
+      });
+    };
+
+    const dbGet = (db, storeName, key) => {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readonly');
+        const req = tx.objectStore(storeName).get(key);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve(req.result);
+      });
+    };
+
+    const dbDelete = (db, storeName, key) => {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readwrite');
+        const req = tx.objectStore(storeName).delete(key);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve();
+      });
+    };
+
+    // Password hashing
+    const hashPassword = async (pw) => {
+      if (typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) {
+        return dcodeIO.bcrypt.hashSync(pw, 10);
+      }
+      // Fallback: SHA-256
+      const data = new TextEncoder().encode(pw);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+    };
+
+    const verifyPassword = async (pw, hash) => {
+      if (typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) {
+        return dcodeIO.bcrypt.compareSync(pw, hash);
+      }
+      const pwHash = await hashPassword(pw);
+      return pwHash === hash;
+    };
+
+    // Input sanitization
+    const sanitize = (str) => {
+      if (typeof str !== 'string') return '';
+      const escMap = {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'};
+      return str.replace(/[<>&"']/g, c => escMap[c]).substring(0, 1000);
+    };
+
+    // Debounce utility
+    const debounce = (fn, ms) => {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), ms);
+      };
+    };
+
+    // Form validation
+    const validateForm = (data, rules) => {
+      const errors = {};
+      Object.entries(rules).forEach(([field, rule]) => {
+        const val = data[field];
+        if (rule.required && (!val || !String(val).trim())) errors[field] = rule.label + ' is required';
+        else if (rule.minLength && val && val.length < rule.minLength) errors[field] = rule.label + ' min ' + rule.minLength + ' chars';
+        else if (rule.maxLength && val && val.length > rule.maxLength) errors[field] = rule.label + ' max ' + rule.maxLength + ' chars';
+        else if (rule.type === 'number' && val && isNaN(Number(val))) errors[field] = rule.label + ' must be a number';
+        else if (rule.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) errors[field] = 'Invalid email';
+      });
+      return errors;
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // ERROR BOUNDARY
+    // ══════════════════════════════════════════════════════════════
+
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+      }
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'2rem',textAlign:'center'}}>
+              <div style={{fontSize:'3rem',marginBottom:'1rem'}}>⚠️</div>
+              <h1 style={{fontSize:'1.5rem',fontWeight:'bold',color:'#223e5b',marginBottom:'0.5rem'}}>Something went wrong</h1>
+              <p style={{color:'#6b7280',marginBottom:'1rem'}}>The app encountered an error. Please reload.</p>
+              <button onClick={() => window.location.reload()} style={{background:'#46ac33',color:'white',padding:'0.75rem 1.5rem',borderRadius:'8px',border:'none',fontWeight:'600',cursor:'pointer'}}>
+                Reload App
+              </button>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // TOAST CONTEXT
+    // ══════════════════════════════════════════════════════════════
+
+    const ToastContext = React.createContext();
+    const useToast = () => React.useContext(ToastContext);
+
+    const ToastProvider = ({ children }) => {
+      const [toasts, setToasts] = React.useState([]);
+      const show = (message, type = 'success') => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, type }]);
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+      };
+      return (
+        <ToastContext.Provider value={{ show }}>
+          {children}
+          <div className="fixed top-4 left-4 right-4 z-[60] space-y-2 pointer-events-none">
+            {toasts.map(t => (
+              <div key={t.id} className={`p-3 rounded-[8px] text-white text-sm font-medium shadow-lg text-center ${
+                t.type === 'success' ? 'bg-green-500' : t.type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+              }`}>
+                {t.type === 'success' ? '✅ ' : t.type === 'error' ? '❌ ' : 'ℹ️ '}{t.message}
+              </div>
+            ))}
+          </div>
+        </ToastContext.Provider>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // UI COMPONENTS - Icons
+    // ══════════════════════════════════════════════════════════════
+
+    const ICON_MAP = {
+      home: 'Home', calls: 'Phone', clinics: 'Building2', businesses: 'Briefcase',
+      visits: 'MapPin', agenda: 'Calendar', nps: 'BarChart3', reports: 'FileText',
+      campaigns: 'Zap', settings: 'Settings', menu: 'Menu', x: 'X', plus: 'Plus',
+      search: 'Search', edit: 'Edit', trash: 'Trash2', check: 'Check', info: 'Info',
+      arrow_back: 'ArrowLeft', arrow_forward: 'ArrowRight', arrow_down: 'ChevronDown',
+      more: 'MoreVertical', chat: 'MessageSquare', user: 'User', logout: 'LogOut',
+      send: 'Send', copy: 'Copy', download: 'Download', upload: 'Upload',
+      star: 'Star', heart: 'Heart', thumbsUp: 'ThumbsUp', mic: 'Mic',
+      play: 'Play', script: 'FileText', bolt: 'Zap',
+      calendar: 'Calendar', route: 'MapPin', team: 'Users', clipboard: 'ClipboardList', camera: 'Camera',
+      trendUp: 'TrendingUp', trendDown: 'TrendingDown', fileDown: 'FileDown', fileUp: 'FileUp',
+    };
+
+    const Icon = ({ name, size = 24, className = '' }) => {
+      const el = React.useRef(null);
+      const lucideName = ICON_MAP[name] || name;
+      React.useEffect(() => {
+        if (el.current && window.lucide && window.lucide[lucideName]) {
+          el.current.innerHTML = '';
+          const svg = lucide.createElement(lucide[lucideName]);
+          svg.setAttribute('width', size);
+          svg.setAttribute('height', size);
+          svg.setAttribute('stroke-width', '2');
+          el.current.appendChild(svg);
+        }
+      }, [lucideName, size]);
+      return <span ref={el} className={`inline-flex items-center ${className}`} />;
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // UI COMPONENTS - Basic
+    // ══════════════════════════════════════════════════════════════
+
+    const Card = ({ children, className = '' }) => (
+      <div className={`bg-white rounded-[12px] shadow-sm border border-gray-100 p-4 ${className}`}>
+        {children}
+      </div>
+    );
+
+    const Button = ({ children, onClick, variant = 'primary', className = '', disabled = false }) => {
+      const baseClasses = 'px-5 py-3 rounded-[8px] font-medium flex items-center gap-2 min-h-[44px] disabled:opacity-50 active:scale-95 transition-transform';
+      const variantClasses = {
+        primary: 'bg-gl text-white hover:bg-gl-dark',
+        secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300',
+        ghost: 'text-navy hover:bg-gray-100',
+        danger: 'bg-red-600 text-white hover:bg-red-700',
+      };
+      return (
+        <button
+          onClick={onClick}
+          disabled={disabled}
+          className={`${baseClasses} ${variantClasses[variant]} ${className}`}
+        >
+          {children}
+        </button>
+      );
+    };
+
+    const Badge = ({ children, variant = 'default', className = '' }) => {
+      const variantClasses = {
+        default: 'bg-blue-100 text-blue-900',
+        success: 'bg-green-100 text-green-900',
+        warning: 'bg-amber-100 text-amber-900',
+        danger: 'bg-red-100 text-red-900',
+        navy: 'bg-navy-light text-white',
+        green: 'bg-gl text-white',
+      };
+      return (
+        <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${variantClasses[variant]} ${className}`}>
+          {children}
+        </span>
+      );
+    };
+
+    const Modal = ({ isOpen, title, children, onClose, actions = [] }) => {
+      if (!isOpen) return null;
+
+      return (
+        <>
+          <div className="modal-overlay" onClick={onClose}></div>
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            <Card className="w-full sm:w-96 rounded-t-[12px] sm:rounded-[12px] max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-navy">{title}</h2>
+                <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                  <Icon name="x" size={24} />
+                </button>
+              </div>
+              {children}
+              {actions.length > 0 && (
+                <div className="flex gap-2 mt-6">
+                  {actions.map((action, i) => (
+                    <Button
+                      key={i}
+                      onClick={action.onClick}
+                      variant={action.variant || 'primary'}
+                      className="flex-1"
+                    >
+                      {action.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        </>
+      );
+    };
+
+    const Sheet = ({ isOpen, onClose, title, children }) => {
+      if (!isOpen) return null;
+
+      return (
+        <>
+          <div className="modal-overlay" onClick={onClose}></div>
+          <div className="fixed bottom-0 left-0 right-0 z-50 sheet-enter">
+            <Card className="w-full rounded-t-[12px] max-h-[70vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white flex justify-between items-center mb-4 pb-4 border-b">
+                <h2 className="text-lg font-bold text-navy">{title}</h2>
+                <button onClick={onClose} className="text-gray-500">
+                  <Icon name="x" size={24} />
+                </button>
+              </div>
+              <div className="pb-4">{children}</div>
+            </Card>
+          </div>
+        </>
+      );
+    };
+
+    const Drawer = ({ isOpen, onClose, children }) => {
+      if (!isOpen) return null;
+
+      return (
+        <>
+          <div className="modal-overlay" onClick={onClose}></div>
+          <div className="fixed top-0 left-0 h-screen z-50 drawer-enter max-w-xs w-64 bg-white shadow-lg overflow-y-auto">
+            {children}
+          </div>
+        </>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // UI COMPONENTS - Forms
+    // ══════════════════════════════════════════════════════════════
+
+    const Input = ({ label, value, onChange, type = 'text', placeholder = '', className = '' }) => {
+      const { t } = useLang();
+      return (
+        <div className={`flex flex-col gap-1 ${className}`}>
+          {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
+          <input
+            type={type}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="px-3 py-3 min-h-[44px] border border-gray-300 rounded-[8px] focus:ring-gl"
+          />
+        </div>
+      );
+    };
+
+    const Select = ({ label, value, onChange, options = [], className = '' }) => {
+      return (
+        <div className={`flex flex-col gap-1 ${className}`}>
+          {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
+          <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="px-3 py-3 min-h-[44px] border border-gray-300 rounded-[8px] focus:ring-gl"
+          >
+            <option value="">Select...</option>
+            {options.map((opt, i) => (
+              <option key={i} value={opt}>{opt}</option>
+            ))}
+          </select>
+        </div>
+      );
+    };
+
+    const TextArea = ({ label, value, onChange, placeholder = '', rows = 3, className = '' }) => {
+      return (
+        <div className={`flex flex-col gap-1 ${className}`}>
+          {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            rows={rows}
+            className="px-3 py-3 min-h-[44px] border border-gray-300 rounded-[8px] focus:ring-gl"
+          />
+        </div>
+      );
+    };
+
+    const VoiceInput = ({ value, onChange, label = '', className = '' }) => {
+      const { t } = useLang();
+      const [isRecording, setIsRecording] = React.useState(false);
+      const [recognition, setRecognition] = React.useState(null);
+
+      React.useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+          const rec = new SpeechRecognition();
+          rec.continuous = true;
+          rec.interimResults = true;
+          let interimTranscript = '';
+
+          rec.onstart = () => setIsRecording(true);
+          rec.onend = () => setIsRecording(false);
+
+          rec.onresult = (evt) => {
+            interimTranscript = '';
+            for (let i = evt.resultIndex; i < evt.results.length; i++) {
+              const transcript = evt.results[i][0].transcript;
+              if (evt.results[i].isFinal) {
+                onChange((value || '') + ' ' + transcript);
+              } else {
+                interimTranscript += transcript;
+              }
+            }
+          };
+
+          rec.onerror = (evt) => {
+            console.error('Speech recognition error:', evt.error);
+            setIsRecording(false);
+          };
+
+          setRecognition(rec);
+        }
+      }, [onChange]);
+
+      const toggleRecording = () => {
+        if (!recognition) return;
+        if (isRecording) {
+          recognition.stop();
+          setIsRecording(false);
+        } else {
+          recognition.start();
+          setIsRecording(true);
+        }
+      };
+
+      return (
+        <div className={`flex flex-col gap-2 ${className}`}>
+          {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
+          <div className="flex gap-2">
+            <textarea
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={t.notes}
+              rows={3}
+              className="flex-1 px-3 py-3 border border-gray-300 rounded-[8px] focus:ring-gl"
+            />
+            <button
+              onClick={toggleRecording}
+              className={`px-4 py-3 rounded-[8px] font-medium flex flex-col items-center justify-center gap-1 min-w-[60px] transition ${
+                isRecording
+                  ? 'bg-red-500 text-white animate-pulse'
+                  : 'bg-gl text-white hover:bg-gl-dark'
+              }`}
+              title={isRecording ? t.stopRecording : t.startRecording}
+            >
+              <Icon name="mic" size={18} />
+              <span className="text-xs">{isRecording ? '●' : t.voiceNote}</span>
+            </button>
+          </div>
+          {isRecording && (
+            <div className="text-xs text-red-600 font-medium flex items-center gap-1">
+              <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+              {t.recordingVoiceNote}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // BARCHART COMPONENT
+    // ══════════════════════════════════════════════════════════════
+
+    const BarChart = ({ data, maxValue, height = 200 }) => {
+      const max = maxValue || Math.max(...data.map(d => d.value), 1);
+      return (
+        <div className="space-y-3" style={{height}}>
+          {data.map((item) => (
+            <div key={item.label} className="flex items-center gap-2">
+              <div className="w-16 text-xs font-medium text-gray-600 truncate">{item.label}</div>
+              <div className="flex-1 bg-gray-200 rounded h-6 overflow-hidden">
+                <div
+                  className="h-full transition-all"
+                  style={{
+                    width: `${(item.value / max) * 100}%`,
+                    backgroundColor: item.color || '#46ac33'
+                  }}
+                ></div>
+              </div>
+              <div className="w-12 text-right text-xs font-semibold text-gray-700">{item.value}</div>
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // LOGIN SCREEN
+    // ══════════════════════════════════════════════════════════════
+
+    const LoginScreen = ({ onLogin, db }) => {
+      const { t, lang, setLang } = useLang();
+      const [email, setEmail] = React.useState('vm@glpethospital.com');
+      const [password, setPassword] = React.useState('gl2026');
+      const [error, setError] = React.useState('');
+      const [loading, setLoading] = React.useState(false);
+
+      const handleLogin = async () => {
+        setLoading(true);
+        setError('');
+
+        try {
+          const users = await dbGetAll(db, 'users');
+          const matchedUser = users.find(u => u.email === email);
+          const user = matchedUser && await verifyPassword(password, matchedUser.password) ? matchedUser : null;
+
+          if (user) {
+            onLogin(user);
+          } else {
+            setError(t.invalidCredentials);
+          }
+        } catch (err) {
+          setError('Error: ' + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-navy to-navy-dark flex flex-col items-center justify-center p-4">
+          <div className="w-full max-w-md text-center">
+            {/* Logo */}
+            <div className="mb-8">
+              <img src="GL Pet Hospital_RGB1.png" alt="Greenlight Pet ER" className="w-48 h-auto mx-auto mb-4" />
+              <h1 className="text-4xl font-bold text-white mb-2">{t.loginTitle}</h1>
+              <p className="text-gl-light text-lg">{t.loginSubtitle}</p>
+            </div>
+
+            {/* Form */}
+            <Card className="space-y-4">
+              {error && (
+                <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded-[8px] text-sm">
+                  {error}
+                </div>
+              )}
+
+              <Input
+                label={t.email}
+                value={email}
+                onChange={setEmail}
+                type="email"
+                placeholder="you@glpethospital.com"
+              />
+
+              <Input
+                label={t.password}
+                value={password}
+                onChange={setPassword}
+                type="password"
+                placeholder="••••••"
+              />
+
+              <Button
+                onClick={handleLogin}
+                disabled={loading}
+                className="w-full justify-center"
+              >
+                {loading ? 'Loading...' : t.login}
+              </Button>
+
+              <div className="text-xs text-gray-500 mt-4 space-y-1">
+                <p>Demo credentials:</p>
+                <p>👤 {t.admin}: vm@glpethospital.com / gl2026</p>
+                <p>👤 {t.employee}: rep@glpethospital.com / gl2026</p>
+              </div>
+            </Card>
+
+            {/* Language Toggle */}
+            <div className="mt-8 flex gap-2 justify-center">
+              <button
+                onClick={() => setLang('pt')}
+                className={`px-4 py-2 rounded-[8px] font-medium transition ${
+                  lang === 'pt'
+                    ? 'bg-gl text-white'
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
+              >
+                🇧🇷 Português
+              </button>
+              <button
+                onClick={() => setLang('en')}
+                className={`px-4 py-2 rounded-[8px] font-medium transition ${
+                  lang === 'en'
+                    ? 'bg-gl text-white'
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
+              >
+                🇺🇸 English
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // APP LAYOUT - Top Bar
+    // ══════════════════════════════════════════════════════════════
+
+    const TopBar = ({ title, onMenuClick, onAIClick, lang, setLang, isOnline }) => {
+      return (
+        <div className="sticky top-0 bg-navy text-white px-4 py-3 flex items-center justify-between shadow-sm z-30">
+          <div className="flex items-center gap-2">
+            <button onClick={onMenuClick} className="text-white hover:text-gl-light">
+              <Icon name="menu" size={24} />
+            </button>
+            <img src="GL Pet Hospital_RGB1.png" alt="GL" className="h-8 w-auto hidden sm:block" />
+          </div>
+          <h1 className="text-lg font-bold flex-1 text-center px-2">{title}{isOnline === false && <span className="text-amber-400 text-xs ml-2">● Offline</span>}</h1>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 bg-navy-light rounded-full p-1">
+              <button
+                onClick={() => setLang('pt')}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition ${
+                  lang === 'pt' ? 'bg-gl text-white' : 'text-white hover:bg-navy-dark'
+                }`}
+              >
+                🇧🇷
+              </button>
+              <button
+                onClick={() => setLang('en')}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition ${
+                  lang === 'en' ? 'bg-gl text-white' : 'text-white hover:bg-navy-dark'
+                }`}
+              >
+                🇺🇸
+              </button>
+            </div>
+            <button onClick={onAIClick} className="text-white hover:text-gl-light">
+              <Icon name="chat" size={24} />
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // APP LAYOUT - Bottom Navigation
+    // ══════════════════════════════════════════════════════════════
+
+    const BottomNav = ({ activeTab, onTabChange }) => {
+      const { t } = useLang();
+      const mainTabs = [
+        { id: 'home', label: t.home, icon: 'home' },
+        { id: 'calls', label: t.calls, icon: 'calls' },
+        { id: 'clinics', label: t.clinics, icon: 'clinics' },
+        { id: 'visits', label: t.visits, icon: 'visits' },
+        { id: 'more', label: t.more, icon: 'more' },
+      ];
+
+      return (
+        <div className="bottom-nav flex justify-around items-center safe-area-pb">
+          {mainTabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              className={`flex flex-col items-center gap-1 py-3 px-4 min-h-[56px] transition ${
+                activeTab === tab.id
+                  ? 'text-gl'
+                  : 'text-gray-600 hover:text-navy'
+              }`}
+            >
+              <Icon name={tab.icon} size={24} />
+              <span className="text-xs font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // SIDE DRAWER
+    // ══════════════════════════════════════════════════════════════
+
+    const SideDrawer = ({ isOpen, onClose, user, onLogout, isAdmin, onNavigate }) => {
+      const { t } = useLang();
+
+      const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
+
+      const handleNav = (tab) => {
+        onNavigate(tab);
+        onClose();
+      };
+
+      return (
+        <Drawer isOpen={isOpen} onClose={onClose}>
+          <div className="p-6">
+            {/* User Info */}
+            <div className="flex items-center gap-4 mb-6 pb-6 border-b">
+              <div className="w-12 h-12 rounded-full bg-gl text-white flex items-center justify-center font-bold text-lg">
+                {initials}
+              </div>
+              <div>
+                <h3 className="font-bold text-navy">{user.name}</h3>
+                <p className="text-sm text-gray-600">
+                  <Badge variant={user.role === 'admin' ? 'navy' : 'green'}>
+                    {user.role === 'admin' ? t.admin : t.employee}
+                  </Badge>
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{user.unit}</p>
+              </div>
+            </div>
+
+            {/* Menu Items */}
+            <div className="space-y-2">
+              {isAdmin && (
+                <button onClick={() => handleNav('team')} className="w-full text-left px-4 py-2 rounded-[8px] hover:bg-gray-100 text-navy font-medium flex items-center gap-2">
+                  <Icon name="team" size={18} /> {t.teamManagement}
+                </button>
+              )}
+              <button onClick={() => handleNav('reports')} className="w-full text-left px-4 py-2 rounded-[8px] hover:bg-gray-100 text-navy font-medium flex items-center gap-2">
+                <Icon name="reports" size={18} /> {t.reports}
+              </button>
+              <button onClick={() => handleNav('settings')} className="w-full text-left px-4 py-2 rounded-[8px] hover:bg-gray-100 text-navy font-medium flex items-center gap-2">
+                <Icon name="settings" size={18} /> {t.settings}
+              </button>
+              <button
+                onClick={onLogout}
+                className="w-full text-left px-4 py-2 rounded-[8px] hover:bg-red-50 text-red-600 font-medium flex items-center gap-2"
+              >
+                <Icon name="logout" size={18} /> {t.logout}
+              </button>
+            </div>
+          </div>
+        </Drawer>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // HOME / DASHBOARD
+    // ══════════════════════════════════════════════════════════════
+
+    const HomePage = ({ t, db, user, lang, dataVersion }) => {
+      const [stats, setStats] = React.useState({
+        totalClinics: 0,
+        totalBusinesses: 0,
+        visitsThisMonth: 0,
+        callsThisMonth: 0,
+        npsAverage: 0,
+        pendingFollowups: 0,
+      });
+      const [suggestions, setSuggestions] = React.useState([]);
+
+      React.useEffect(() => {
+        const loadStats = async () => {
+          const entities = await dbGetAll(db, 'entities');
+          const calls = await dbGetAll(db, 'calls');
+          const visits = await dbGetAll(db, 'visits');
+          const npsData = await dbGetAll(db, 'nps');
+
+          const now = new Date();
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+          const clinics = entities.filter(e => e.type === 'clinic');
+          const businesses = entities.filter(e => e.type === 'business');
+          const callsThisMonth = calls.filter(c => new Date(c.date) >= monthStart);
+          const visitsThisMonth = visits.filter(v => new Date(v.date) >= monthStart);
+          const npsAvg = npsData.length > 0
+            ? (npsData.reduce((sum, n) => sum + n.score, 0) / npsData.length).toFixed(1)
+            : 0;
+
+          // Compute suggestions
+          const sug = [];
+
+          // Clinics not visited in 30+ days
+          const notVisited = clinics.filter(c => {
+            const lastVisit = visits.filter(v => v.entityName === c.name).sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+            return !lastVisit || new Date(lastVisit.date) < thirtyDaysAgo;
+          });
+          if (notVisited.length > 0) {
+            sug.push({ type: 'noVisits', count: notVisited.length, npsAvg });
+          }
+
+          // NPS dropped
+          if (npsAvg < 7) {
+            sug.push({ type: 'npsDrop', npsAvg });
+          }
+
+          // Pending follow-ups (using calls as proxy)
+          const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          const pending = calls.filter(c => new Date(c.date) >= weekStart && c.reason === 'Follow-up').length;
+          if (pending > 0) {
+            sug.push({ type: 'pending', count: pending });
+          }
+
+          setStats({
+            totalClinics: clinics.length,
+            totalBusinesses: businesses.length,
+            visitsThisMonth: visitsThisMonth.length,
+            callsThisMonth: callsThisMonth.length,
+            npsAverage: npsAvg,
+            pendingFollowups: pending,
+          });
+          setSuggestions(sug.slice(0, 4));
+        };
+
+        loadStats();
+      }, [db, dataVersion]);
+
+      return (
+        <div className="p-4 space-y-4">
+          {/* Welcome Banner */}
+          <div className="rounded-2xl overflow-hidden flex items-center justify-between" style={{background:'#46ac33',minHeight:120}}>
+            <div className="px-6 py-4">
+              <h1 className="text-2xl font-extrabold text-white">{t.welcome || 'Welcome'}, {user.name}!</h1>
+              <p className="text-white/80 mt-1 text-sm">{new Date().toLocaleDateString(lang === 'pt' ? 'pt-BR' : 'en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>
+            </div>
+            <img src="Banner Img.png" alt="" className="h-28 w-auto object-contain pr-4 hidden sm:block"/>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card>
+              <div className="text-3xl font-bold text-navy">{stats.totalClinics}</div>
+              <p className="text-sm text-gray-600 mt-1">🏥 {t.totalClinics}</p>
+            </Card>
+            <Card>
+              <div className="text-3xl font-bold text-navy">{stats.totalBusinesses}</div>
+              <p className="text-sm text-gray-600 mt-1">💼 {t.totalBusinesses}</p>
+            </Card>
+            <Card>
+              <div className="text-3xl font-bold text-navy">{stats.visitsThisMonth}</div>
+              <p className="text-sm text-gray-600 mt-1">📍 {t.visitsThisMonth}</p>
+            </Card>
+            <Card>
+              <div className="text-3xl font-bold text-navy">{stats.callsThisMonth}</div>
+              <p className="text-sm text-gray-600 mt-1">📞 {t.callsThisMonth}</p>
+            </Card>
+            <Card>
+              <div className="text-3xl font-bold text-gl">{stats.npsAverage}</div>
+              <p className="text-sm text-gray-600 mt-1">⭐ {t.npsAvg}</p>
+            </Card>
+            <Card>
+              <div className="text-3xl font-bold text-amber-600">{stats.pendingFollowups}</div>
+              <p className="text-sm text-gray-600 mt-1">⏱️ {t.pendingFollowups}</p>
+            </Card>
+          </div>
+
+          {/* AI Suggestions */}
+          {suggestions.length > 0 && (
+            <Card className="bg-blue-50 border border-blue-200">
+              <h3 className="font-bold text-navy mb-3 flex items-center gap-2">
+                <Icon name="bolt" size={18} /> {t.aiSuggestions}
+              </h3>
+              <div className="space-y-2">
+                {suggestions.map((sug, i) => (
+                  <div key={i} className="text-sm text-gray-700 p-2 bg-white rounded border border-blue-100">
+                    {sug.type === 'noVisits' && (
+                      <div>🔴 <strong>{sug.count}</strong> {t.noVisitsFor30Days}</div>
+                    )}
+                    {sug.type === 'npsDrop' && (
+                      <div>📉 {t.npsDropped} <strong>{sug.npsAvg}</strong> — {t.reviewDetractors}</div>
+                    )}
+                    {sug.type === 'pending' && (
+                      <div>✋ <strong>{sug.count}</strong> {t.pendingFollowupsWeek}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Quick Actions */}
+          <div className="space-y-2 pt-4">
+            <h3 className="font-bold text-navy px-2">{t.actions}</h3>
+            <Button className="w-full justify-center"><Icon name="plus" size={18} /> {t.newCall}</Button>
+            <Button className="w-full justify-center"><Icon name="plus" size={18} /> {t.newVisit}</Button>
+            <Button className="w-full justify-center"><Icon name="plus" size={18} /> {t.newSurvey}</Button>
+          </div>
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // CALLS MODULE
+    // ══════════════════════════════════════════════════════════════
+
+    const CallsPage = ({ t, db, user, dataVersion }) => {
+      const [calls, setCalls] = React.useState([]);
+      const [showNewCall, setShowNewCall] = React.useState(false);
+      const [searchTerm, setSearchTerm] = React.useState('');
+
+      React.useEffect(() => {
+        const loadCalls = async () => {
+          const allCalls = await dbGetAll(db, 'calls');
+          setCalls(allCalls.sort((a, b) => new Date(b.date) - new Date(a.date)));
+        };
+        loadCalls();
+      }, [db, dataVersion]);
+
+      const handleSaveCall = async (callData) => {
+        try {
+          const newCall = {
+            id: Date.now().toString(),
+            ...callData,
+            userId: user.id,
+            date: new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString(),
+            createdBy: user.id,
+          };
+          await dbAdd(db, 'calls', newCall);
+          setCalls([newCall, ...calls]);
+          setShowNewCall(false);
+        } catch (err) {
+          console.error('Save failed:', err);
+          alert('Failed to save. Please try again.');
+        }
+      };
+
+      return (
+        <div className="p-4 space-y-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder={t.search}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-[8px]"
+            />
+            <Button onClick={() => setShowNewCall(true)} className="px-4">
+              <Icon name="plus" size={18} />
+            </Button>
+          </div>
+
+          {calls.length === 0 ? (
+            <Card className="text-center py-8 text-gray-500">
+              {t.noData}
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {calls.map(call => (
+                <Card key={call.id} className="cursor-pointer hover:shadow-md">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-navy">{call.entityName}</h3>
+                    <span className="text-xs text-gray-500">{call.date}</span>
+                  </div>
+                  <p className="text-sm text-gray-600">{call.reason}</p>
+                  <p className="text-xs text-gray-500 mt-1">📝 {call.notes?.substring(0, 50)}...</p>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <NewCallModal
+            isOpen={showNewCall}
+            onClose={() => setShowNewCall(false)}
+            onSave={handleSaveCall}
+            t={t}
+            db={db}
+          />
+        </div>
+      );
+    };
+
+    const NewCallModal = ({ isOpen, onClose, onSave, t, db }) => {
+      const [formData, setFormData] = React.useState({
+        entityName: '',
+        reason: '',
+        notes: '',
+      });
+
+      const handleSave = () => {
+        if (formData.entityName && formData.reason) {
+          onSave(formData);
+          setFormData({ entityName: '', reason: '', notes: '' });
+        }
+      };
+
+      return (
+        <Modal
+          isOpen={isOpen}
+          title={t.newCall}
+          onClose={onClose}
+          actions={[
+            { label: t.cancel, onClick: onClose, variant: 'secondary' },
+            { label: t.save, onClick: handleSave },
+          ]}
+        >
+          <div className="space-y-4">
+            <Input
+              label={t.entity}
+              value={formData.entityName}
+              onChange={(v) => setFormData({ ...formData, entityName: v })}
+              placeholder={t.search}
+            />
+            <Select
+              label={t.reason}
+              value={formData.reason}
+              onChange={(v) => setFormData({ ...formData, reason: v })}
+              options={CONTACT_REASONS}
+            />
+            <VoiceInput
+              label={t.notes}
+              value={formData.notes}
+              onChange={(v) => setFormData({ ...formData, notes: v })}
+            />
+          </div>
+        </Modal>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // CLINICS MODULE
+    // ══════════════════════════════════════════════════════════════
+
+    const ClinicsPage = ({ t, db, user, dataVersion }) => {
+      const [clinics, setClinics] = React.useState([]);
+      const [showNewClinic, setShowNewClinic] = React.useState(false);
+      const [selectedClinic, setSelectedClinic] = React.useState(null);
+      const [searchTerm, setSearchTerm] = React.useState('');
+      const [filterRegion, setFilterRegion] = React.useState('');
+      const [debouncedSearch, setDebouncedSearch] = React.useState('');
+      const handleSearch = React.useMemo(() => debounce((val) => setDebouncedSearch(val), 300), []);
+      React.useEffect(() => { handleSearch(searchTerm); }, [searchTerm, handleSearch]);
+
+      React.useEffect(() => {
+        const loadClinics = async () => {
+          const entities = await dbGetAll(db, 'entities');
+          const clinicList = entities.filter(e => e.type === 'clinic');
+          setClinics(clinicList);
+        };
+        loadClinics();
+      }, [db, dataVersion]);
+
+      const filteredClinics = clinics.filter(c =>
+        (c.name?.toLowerCase().includes(debouncedSearch.toLowerCase()) || debouncedSearch === '') &&
+        (filterRegion === '' || c.region === filterRegion)
+      );
+
+      const handleSaveClinic = async (clinicData) => {
+        try {
+          const newClinic = {
+            id: Date.now().toString(),
+            type: 'clinic',
+            ...clinicData,
+            createdAt: new Date().toISOString(),
+            createdBy: user.id,
+          };
+          await dbAdd(db, 'entities', newClinic);
+          setClinics([...clinics, newClinic]);
+          setShowNewClinic(false);
+        } catch (err) {
+          console.error('Save failed:', err);
+          alert('Failed to save. Please try again.');
+        }
+      };
+
+      return (
+        <div className="p-4 space-y-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder={t.search}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-[8px]"
+            />
+            <Button onClick={() => setShowNewClinic(true)} className="px-4">
+              <Icon name="plus" size={18} />
+            </Button>
+          </div>
+
+          <Select
+            label={t.region}
+            value={filterRegion}
+            onChange={setFilterRegion}
+            options={UNITS.map(u => u.name)}
+          />
+
+          {filteredClinics.length === 0 ? (
+            <Card className="text-center py-8 text-gray-500">
+              {t.noResults}
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {filteredClinics.map(clinic => (
+                <Card
+                  key={clinic.id}
+                  onClick={() => setSelectedClinic(clinic)}
+                  className="cursor-pointer hover:shadow-md"
+                >
+                  <h3 className="font-bold text-navy">{clinic.name}</h3>
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    <Badge variant="navy">{clinic.region}</Badge>
+                    <Badge variant={clinic.clientStatus === 'Active' ? 'success' : 'warning'}>
+                      {clinic.clientStatus}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">📍 {clinic.address}</p>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <NewClinicModal
+            isOpen={showNewClinic}
+            onClose={() => setShowNewClinic(false)}
+            onSave={handleSaveClinic}
+            t={t}
+          />
+
+          {selectedClinic && (
+            <ClinicDetailModal
+              clinic={selectedClinic}
+              onClose={() => setSelectedClinic(null)}
+              t={t}
+              db={db}
+            />
+          )}
+        </div>
+      );
+    };
+
+    const NewClinicModal = ({ isOpen, onClose, onSave, t }) => {
+      const [formData, setFormData] = React.useState({
+        name: '',
+        region: '',
+        address: '',
+        phone: '',
+        email: '',
+        owner: '',
+        vetName: '',
+        managerName: '',
+        receptionistName: '',
+        googleScore: '',
+        volume: '',
+        clientStatus: 'New',
+      });
+
+      const handleSave = () => {
+        if (formData.name && formData.region) {
+          onSave(formData);
+          setFormData({
+            name: '', region: '', address: '', phone: '', email: '',
+            owner: '', vetName: '', managerName: '', receptionistName: '',
+            googleScore: '', volume: '', clientStatus: 'New',
+          });
+        }
+      };
+
+      return (
+        <Modal
+          isOpen={isOpen}
+          title={t.newClinic}
+          onClose={onClose}
+          actions={[
+            { label: t.cancel, onClick: onClose, variant: 'secondary' },
+            { label: t.save, onClick: handleSave },
+          ]}
+        >
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            <Input
+              label={t.clinicName}
+              value={formData.name}
+              onChange={(v) => setFormData({ ...formData, name: v })}
+            />
+            <Select
+              label={t.region}
+              value={formData.region}
+              onChange={(v) => setFormData({ ...formData, region: v })}
+              options={UNITS.map(u => u.name)}
+            />
+            <Input
+              label={t.address}
+              value={formData.address}
+              onChange={(v) => setFormData({ ...formData, address: v })}
+            />
+            <Input
+              label={t.phone}
+              value={formData.phone}
+              onChange={(v) => setFormData({ ...formData, phone: v })}
+            />
+            <Input
+              label={t.email}
+              value={formData.email}
+              onChange={(v) => setFormData({ ...formData, email: v })}
+            />
+            <Input
+              label={t.owner}
+              value={formData.owner}
+              onChange={(v) => setFormData({ ...formData, owner: v })}
+            />
+            <Input
+              label={t.vetName}
+              value={formData.vetName}
+              onChange={(v) => setFormData({ ...formData, vetName: v })}
+            />
+            <Input
+              label={t.managerName}
+              value={formData.managerName}
+              onChange={(v) => setFormData({ ...formData, managerName: v })}
+            />
+            <Input
+              label={t.receptionistName}
+              value={formData.receptionistName}
+              onChange={(v) => setFormData({ ...formData, receptionistName: v })}
+            />
+            <Input
+              label={t.googleScore}
+              type="number"
+              value={formData.googleScore}
+              onChange={(v) => setFormData({ ...formData, googleScore: v })}
+            />
+            <Input
+              label={t.volume}
+              value={formData.volume}
+              onChange={(v) => setFormData({ ...formData, volume: v })}
+            />
+            <Select
+              label={t.status}
+              value={formData.clientStatus}
+              onChange={(v) => setFormData({ ...formData, clientStatus: v })}
+              options={CLIENT_STATUSES}
+            />
+          </div>
+        </Modal>
+      );
+    };
+
+    const ClinicDetailModal = ({ clinic, onClose, t, db }) => {
+      const [similar, setSimilar] = React.useState([]);
+      const [showSimilar, setShowSimilar] = React.useState(false);
+
+      const handleFindSimilar = async () => {
+        const entities = await dbGetAll(db, 'entities');
+        const clinics = entities.filter(e => e.type === 'clinic');
+        const similars = clinics.filter(c =>
+          c.id !== clinic.id &&
+          c.region === clinic.region &&
+          c.clientStatus === clinic.clientStatus
+        );
+        setSimilar(similars);
+        setShowSimilar(true);
+      };
+
+      return (
+        <>
+          <Modal isOpen={true} title={clinic.name} onClose={onClose}>
+            <div className="space-y-3 text-sm max-h-[60vh] overflow-y-auto">
+              <div>
+                <p className="text-gray-600">{t.address}</p>
+                <p className="font-medium">{clinic.address}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">{t.phone}</p>
+                <p className="font-medium">{clinic.phone}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">{t.email}</p>
+                <p className="font-medium">{clinic.email}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">{t.owner}</p>
+                <p className="font-medium">{clinic.owner}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">{t.vetName}</p>
+                <p className="font-medium">{clinic.vetName}</p>
+              </div>
+              {clinic.googleScore && (
+                <div>
+                  <p className="text-gray-600">{t.googleScore}</p>
+                  <p className="font-medium">⭐ {clinic.googleScore}</p>
+                </div>
+              )}
+              <Button onClick={handleFindSimilar} className="w-full justify-center mt-4">
+                <Icon name="search" size={16} /> {t.similar}
+              </Button>
+            </div>
+          </Modal>
+
+          {showSimilar && (
+            <Modal isOpen={true} title={t.similarProspects} onClose={() => setShowSimilar(false)}>
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                {similar.length === 0 ? (
+                  <p className="text-sm text-gray-600">{t.noResults}</p>
+                ) : (
+                  similar.map(c => (
+                    <Card key={c.id} className="hover:shadow-md">
+                      <h4 className="font-bold text-navy text-sm">{c.name}</h4>
+                      <p className="text-xs text-gray-600 mt-1">{t.sameRegionStatus}</p>
+                      <p className="text-xs text-gray-500">📍 {c.address}</p>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </Modal>
+          )}
+        </>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // BUSINESSES MODULE
+    // ══════════════════════════════════════════════════════════════
+
+    const BusinessesPage = ({ t, db, user, dataVersion }) => {
+      const [businesses, setBusinesses] = React.useState([]);
+      const [showNew, setShowNew] = React.useState(false);
+      const [searchTerm, setSearchTerm] = React.useState('');
+
+      React.useEffect(() => {
+        const load = async () => {
+          const entities = await dbGetAll(db, 'entities');
+          setBusinesses(entities.filter(e => e.type === 'business'));
+        };
+        load();
+      }, [db, dataVersion]);
+
+      const filtered = businesses.filter(b =>
+        !searchTerm || b.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+      const handleSave = async (data) => {
+        try {
+          const newBiz = {
+            id: Date.now().toString(),
+            type: 'business',
+            ...data,
+            createdAt: new Date().toISOString(),
+            createdBy: user.id,
+          };
+          await dbAdd(db, 'entities', newBiz);
+          setBusinesses([...businesses, newBiz]);
+          setShowNew(false);
+        } catch (err) {
+          console.error('Save failed:', err);
+        }
+      };
+
+      return (
+        <div className="p-4 space-y-4">
+          <div className="flex gap-2">
+            <input type="text" placeholder={t.search} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-1 px-3 py-2 border border-gray-300 rounded-[8px]" />
+            <Button onClick={() => setShowNew(true)} className="px-4"><Icon name="plus" size={18} /></Button>
+          </div>
+          {filtered.length === 0 ? (
+            <Card className="text-center py-8 text-gray-500">{t.noResults}</Card>
+          ) : (
+            filtered.map(biz => (
+              <Card key={biz.id} className="hover:shadow-md">
+                <h3 className="font-bold text-navy">{biz.name}</h3>
+                <p className="text-sm text-gray-600 mt-1">{biz.businessType}</p>
+                <p className="text-xs text-gray-500 mt-1">📍 {biz.address}</p>
+                <Badge variant={biz.clientStatus === 'Active' ? 'success' : 'warning'} className="mt-2">{biz.clientStatus}</Badge>
+              </Card>
+            ))
+          )}
+          <NewBusinessModal isOpen={showNew} onClose={() => setShowNew(false)} onSave={handleSave} t={t} />
+        </div>
+      );
+    };
+
+    const NewBusinessModal = ({ isOpen, onClose, onSave, t }) => {
+      const [formData, setFormData] = React.useState({
+        name: '', businessType: '', address: '', phone: '', email: '', contactName: '', clientStatus: 'New',
+      });
+      const handleSave = () => {
+        if (formData.name) {
+          onSave(formData);
+          setFormData({ name: '', businessType: '', address: '', phone: '', email: '', contactName: '', clientStatus: 'New' });
+        }
+      };
+      return (
+        <Modal isOpen={isOpen} title={t.newBusiness} onClose={onClose} actions={[
+          { label: t.cancel, onClick: onClose, variant: 'secondary' },
+          { label: t.save, onClick: handleSave },
+        ]}>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            <Input label={t.businessName} value={formData.name} onChange={(v) => setFormData({...formData, name: v})} />
+            <Input label={t.businessType} value={formData.businessType} onChange={(v) => setFormData({...formData, businessType: v})} />
+            <Input label={t.address} value={formData.address} onChange={(v) => setFormData({...formData, address: v})} />
+            <Input label={t.phone} value={formData.phone} onChange={(v) => setFormData({...formData, phone: v})} />
+            <Input label={t.email} value={formData.email} onChange={(v) => setFormData({...formData, email: v})} />
+            <Input label={t.contactName} value={formData.contactName} onChange={(v) => setFormData({...formData, contactName: v})} />
+            <Select label={t.status} value={formData.clientStatus} onChange={(v) => setFormData({...formData, clientStatus: v})} options={CLIENT_STATUSES} />
+          </div>
+        </Modal>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // VISITS MODULE
+    // ══════════════════════════════════════════════════════════════
+
+    const VisitsPage = ({ t, db, user, dataVersion }) => {
+      const [visits, setVisits] = React.useState([]);
+      const [showNewVisit, setShowNewVisit] = React.useState(false);
+
+      React.useEffect(() => {
+        const loadVisits = async () => {
+          const allVisits = await dbGetAll(db, 'visits');
+          setVisits(allVisits.sort((a, b) => new Date(b.date) - new Date(a.date)));
+        };
+        loadVisits();
+      }, [db, dataVersion]);
+
+      const handleSaveVisit = async (visitData) => {
+        try {
+          const newVisit = {
+            id: Date.now().toString(),
+            ...visitData,
+            userId: user.id,
+            date: new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString(),
+            createdBy: user.id,
+          };
+          await dbAdd(db, 'visits', newVisit);
+          setVisits([newVisit, ...visits]);
+          setShowNewVisit(false);
+        } catch (err) {
+          console.error('Save failed:', err);
+          alert('Failed to save. Please try again.');
+        }
+      };
+
+      return (
+        <div className="p-4 space-y-4">
+          <Button onClick={() => setShowNewVisit(true)} className="w-full justify-center">
+            <Icon name="plus" size={18} /> {t.newVisit}
+          </Button>
+
+          {visits.length === 0 ? (
+            <Card className="text-center py-8 text-gray-500">
+              {t.noData}
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {visits.map(visit => (
+                <Card key={visit.id} className="hover:shadow-md">
+                  <h3 className="font-bold text-navy">{visit.entityName}</h3>
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    <Badge variant="green">{visit.campaign}</Badge>
+                    <span className="text-xs text-gray-500">{visit.date}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">{visit.observations}</p>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <NewVisitModal
+            isOpen={showNewVisit}
+            onClose={() => setShowNewVisit(false)}
+            onSave={handleSaveVisit}
+            t={t}
+          />
+        </div>
+      );
+    };
+
+    const NewVisitModal = ({ isOpen, onClose, onSave, t }) => {
+      const [formData, setFormData] = React.useState({
+        entityName: '',
+        campaign: '',
+        materialsDelivered: [],
+        observations: '',
+      });
+
+      const handleSave = () => {
+        if (formData.entityName && formData.campaign) {
+          onSave(formData);
+          setFormData({ entityName: '', campaign: '', materialsDelivered: [], observations: '' });
+        }
+      };
+
+      return (
+        <Modal
+          isOpen={isOpen}
+          title={t.newVisit}
+          onClose={onClose}
+          actions={[
+            { label: t.cancel, onClick: onClose, variant: 'secondary' },
+            { label: t.save, onClick: handleSave },
+          ]}
+        >
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            <Input
+              label={t.entity}
+              value={formData.entityName}
+              onChange={(v) => setFormData({ ...formData, entityName: v })}
+            />
+            <Select
+              label={t.campaign}
+              value={formData.campaign}
+              onChange={(v) => setFormData({ ...formData, campaign: v })}
+              options={CAMPAIGNS.map(c => c.name)}
+            />
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">{t.materialsDelivered}</label>
+              {VISIT_MATERIALS.map(mat => (
+                <label key={mat} className="flex items-center gap-2 mb-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.materialsDelivered.includes(mat)}
+                    onChange={(e) => {
+                      const newMaterials = e.target.checked
+                        ? [...formData.materialsDelivered, mat]
+                        : formData.materialsDelivered.filter(m => m !== mat);
+                      setFormData({ ...formData, materialsDelivered: newMaterials });
+                    }}
+                  />
+                  {mat}
+                </label>
+              ))}
+            </div>
+            <VoiceInput
+              label={t.observations}
+              value={formData.observations}
+              onChange={(v) => setFormData({ ...formData, observations: v })}
+            />
+          </div>
+        </Modal>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // SALES SCRIPTS PAGE
+    // ══════════════════════════════════════════════════════════════
+
+    const DEFAULT_SCRIPTS = [
+      {
+        id: 1,
+        title: 'Primeira Visita — Apresentação GL Pet ER',
+        titleEn: 'First Visit — GL Pet ER Introduction',
+        category: 'Apresentação',
+        categoryEn: 'Introduction',
+        steps: [
+          'Apresentar-se e agendar a visita com antecedência',
+          'Explicar os serviços de emergência 24/7 do GL Pet ER',
+          'Destacar tecnologia e equipe especializada',
+          'Mostrar políticas de parceria e descontos',
+          'Deixar material promocional (folhetos, cartões)',
+        ],
+        stepsEn: [
+          'Introduce yourself and schedule visit in advance',
+          'Explain GL Pet ER 24/7 emergency services',
+          'Highlight technology and specialized team',
+          'Show partnership policies and discounts',
+          'Leave promotional materials (flyers, cards)',
+        ],
+        tips: 'Seja amável e profissional. Ouve os objetivos do estabelecimento. Deixe contato para dúvidas.',
+        tipsEn: 'Be friendly and professional. Listen to their goals. Leave contact for questions.',
+      },
+      {
+        id: 2,
+        title: 'Follow-up Pós-Visita',
+        titleEn: 'Post-Visit Follow-up',
+        category: 'Follow-up',
+        categoryEn: 'Follow-up',
+        steps: [
+          'Contatar 3-5 dias após a visita',
+          'Confirmar recebimento dos materiais',
+          'Responder dúvidas ou objeções',
+          'Propor próxima etapa (almoço comercial, apresentação)',
+          'Agendar visita de recheck',
+        ],
+        stepsEn: [
+          'Contact 3-5 days after visit',
+          'Confirm receipt of materials',
+          'Address any questions or objections',
+          'Propose next step (business lunch, presentation)',
+          'Schedule follow-up visit',
+        ],
+        tips: 'Adicione valor em cada contato. Mostre que você se importa com a parceria.',
+        tipsEn: 'Add value in every contact. Show you care about the partnership.',
+      },
+      {
+        id: 3,
+        title: 'Objeção: Já Temos Emergência',
+        titleEn: 'Objection: We Already Have Emergency Service',
+        category: 'Objeções',
+        categoryEn: 'Objections',
+        steps: [
+          'Ouvir completamente a objeção sem interromper',
+          'Validar que entende a situação atual',
+          'Apresentar vantagens competitivas do GL (tecnologia, resposta 24/7, suporte)',
+          'Sugerir modelo de coexistência (GL para casos específicos)',
+          'Oferecer teste/parceria piloto',
+        ],
+        stepsEn: [
+          'Listen completely without interrupting',
+          'Validate that you understand their current situation',
+          'Present GL\'s competitive advantages (technology, 24/7, support)',
+          'Suggest coexistence model (GL for specific cases)',
+          'Offer pilot partnership/trial',
+        ],
+        tips: 'Não critique a concorrência. Focar no valor único de GL. Seja consultivo.',
+        tipsEn: 'Don\'t criticize competition. Focus on GL\'s unique value. Be consultative.',
+      },
+      {
+        id: 4,
+        title: 'Reativação de Parceiro Inativo',
+        titleEn: 'Inactive Partner Reactivation',
+        category: 'Reativação',
+        categoryEn: 'Reactivation',
+        steps: [
+          'Pesquisar o histórico de parceria (quando parou, por quê)',
+          'Contatar com tom empático (não acusatório)',
+          'Apresentar melhorias desde último contato',
+          'Oferecer incentivos (desconto, suporte dedicado)',
+          'Propor reunião para realinhar expectativas',
+        ],
+        stepsEn: [
+          'Research partnership history (when/why it stopped)',
+          'Contact with empathetic tone (not accusatory)',
+          'Present improvements since last contact',
+          'Offer incentives (discount, dedicated support)',
+          'Propose meeting to realign expectations',
+        ],
+        tips: 'Assuma responsabilidade. Mostre valor tangível. Escute suas preocupações.',
+        tipsEn: 'Take responsibility. Show tangible value. Listen to their concerns.',
+      },
+      {
+        id: 5,
+        title: 'Proposta de Parceria',
+        titleEn: 'Partnership Proposal',
+        category: 'Fechamento',
+        categoryEn: 'Closing',
+        steps: [
+          'Resumir benefícios já discutidos',
+          'Apresentar modelo de negócio (SLA, prazos, descontos)',
+          'Esclarecer próximas etapas operacionais',
+          'Definir contato designado e suporte',
+          'Solicitar assinatura/confirmação',
+        ],
+        stepsEn: [
+          'Summarize benefits already discussed',
+          'Present business model (SLA, terms, discounts)',
+          'Clarify next operational steps',
+          'Define designated contact and support',
+          'Request signature/confirmation',
+        ],
+        tips: 'Seja claro e concreto. Deixe documentação em mão. Sempre confirme próximas ações.',
+        tipsEn: 'Be clear and concrete. Leave documentation. Always confirm next actions.',
+      },
+    ];
+
+    const SalesScriptsPage = ({ t, db, user, dataVersion }) => {
+      const [scripts, setScripts] = React.useState([]);
+      const [selectedScript, setSelectedScript] = React.useState(null);
+
+      React.useEffect(() => {
+        const loadScripts = async () => {
+          const allScripts = await dbGetAll(db, 'protocols');
+          if (allScripts.length === 0) {
+            // Initialize default scripts
+            for (const script of DEFAULT_SCRIPTS) {
+              await dbAdd(db, 'protocols', script);
+            }
+            setScripts(DEFAULT_SCRIPTS);
+          } else {
+            setScripts(allScripts);
+          }
+        };
+        loadScripts();
+      }, [db, dataVersion]);
+
+      const lang = t === translations.pt ? 'pt' : 'en';
+      const displayedScripts = scripts.map(s => ({
+        ...s,
+        title: lang === 'pt' ? s.title : s.titleEn,
+        category: lang === 'pt' ? s.category : s.categoryEn,
+        steps: lang === 'pt' ? s.steps : s.stepsEn,
+        tips: lang === 'pt' ? s.tips : s.tipsEn,
+      }));
+
+      return (
+        <div className="p-4 space-y-4">
+          {displayedScripts.length === 0 ? (
+            <Card className="text-center py-8 text-gray-500">
+              {t.noData}
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {displayedScripts.map(script => (
+                <Card
+                  key={script.id}
+                  onClick={() => setSelectedScript(script)}
+                  className="cursor-pointer hover:shadow-md transition"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-navy">{script.title}</h3>
+                      <Badge variant="green" className="mt-2">{script.category}</Badge>
+                      <p className="text-xs text-gray-500 mt-2">💡 {script.tips.substring(0, 60)}...</p>
+                    </div>
+                    <Icon name="play" size={20} className="text-gl flex-shrink-0 mt-1" />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Script Detail Modal */}
+          {selectedScript && (
+            <Modal
+              isOpen={!!selectedScript}
+              title={selectedScript.title}
+              onClose={() => setSelectedScript(null)}
+              actions={[
+                { label: t.close, onClick: () => setSelectedScript(null), variant: 'primary' },
+              ]}
+            >
+              <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <Badge variant="green">{selectedScript.category}</Badge>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-navy mb-2">{t.scriptSteps}</h4>
+                  <ol className="space-y-2">
+                    {selectedScript.steps.map((step, i) => (
+                      <li key={i} className="text-sm text-gray-700 flex gap-3">
+                        <span className="font-bold text-gl flex-shrink-0">{i + 1}.</span>
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-[8px] p-4">
+                  <h4 className="font-bold text-navy mb-2">💡 {t.scriptTips}</h4>
+                  <p className="text-sm text-gray-700">{selectedScript.tips}</p>
+                </div>
+              </div>
+            </Modal>
+          )}
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // QUICK ACTIONS FAB
+    // ══════════════════════════════════════════════════════════════
+
+    const QuickActionsFAB = ({ onNewCall, onNewVisit, onNewSurvey, onNewClinic, t }) => {
+      const [isExpanded, setIsExpanded] = React.useState(false);
+
+      const actions = [
+        { id: 'call', label: t.newCall, icon: 'calls', onClick: onNewCall },
+        { id: 'visit', label: t.newVisit, icon: 'visits', onClick: onNewVisit },
+        { id: 'survey', label: t.newSurvey, icon: 'nps', onClick: onNewSurvey },
+        { id: 'clinic', label: t.newClinic, icon: 'clinics', onClick: onNewClinic },
+      ];
+
+      return (
+        <>
+          {isExpanded && (
+            <div className="fixed inset-0 z-[48]" onClick={() => setIsExpanded(false)}></div>
+          )}
+          <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-3">
+            {isExpanded && actions.map((action) => (
+              <button
+                key={action.id}
+                onClick={() => {
+                  action.onClick();
+                  setIsExpanded(false);
+                }}
+                className="flex items-center gap-3 bg-white rounded-full shadow-lg px-4 py-3 hover:shadow-xl transition animate-in fade-in zoom-in-50"
+              >
+                <Icon name={action.icon} size={18} className="text-gl" />
+                <span className="font-medium text-sm text-navy whitespace-nowrap">{action.label}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className={`w-14 h-14 rounded-full flex items-center justify-center font-bold transition shadow-lg hover:shadow-xl ${
+                isExpanded
+                  ? 'bg-red-500 text-white'
+                  : 'bg-gl text-white hover:bg-gl-dark'
+              }`}
+            >
+              <Icon name={isExpanded ? 'x' : 'plus'} size={24} />
+            </button>
+          </div>
+        </>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // ROUTINE FORM COMPONENT
+    // ══════════════════════════════════════════════════════════════
+
+    const RoutineForm = ({ onSubmit, t }) => {
+      const [ratings, setRatings] = React.useState({
+        cleaning: 0, marketing: 0, visible: 0, knowledge: 0, indication: 0,
+        referrals: 0, receptivity: 0, waitTime: 0, emergency: 0, competitors: 0,
+        quality: 0, campaigns: 0, partnership: 0,
+      });
+      const [notes, setNotes] = React.useState('');
+      const [photo, setPhoto] = React.useState(null);
+
+      const questions = [
+        { key: 'cleaning', label: t.cleaningOrganization },
+        { key: 'marketing', label: t.marketingMaterial },
+        { key: 'visible', label: t.materialVisible },
+        { key: 'knowledge', label: t.knowledgeServices },
+        { key: 'indication', label: t.referralIndication },
+        { key: 'referrals', label: t.monthlyReferrals },
+        { key: 'receptivity', label: t.teamReceptivity },
+        { key: 'waitTime', label: t.receptionWaitTime },
+        { key: 'emergency', label: t.emergencyServices },
+        { key: 'competitors', label: t.competitors },
+        { key: 'quality', label: t.relationshipQuality },
+        { key: 'campaigns', label: t.campaignInterest },
+        { key: 'partnership', label: t.partnershipRating },
+      ];
+
+      const handleSubmit = () => {
+        onSubmit({ ratings, notes, photo });
+      };
+
+      return (
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+          {questions.map(q => (
+            <div key={q.key} className="border rounded-lg p-3">
+              <p className="text-sm font-medium text-gray-700 mb-2">{q.label}</p>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map(num => (
+                  <button
+                    key={num}
+                    onClick={() => setRatings({ ...ratings, [q.key]: num })}
+                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                      ratings[q.key] === num
+                        ? 'bg-gl text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <TextArea
+            label={t.notes}
+            value={notes}
+            onChange={setNotes}
+          />
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-2">{t.uploadPhoto}</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setPhoto(e.target.files?.[0] || null)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-[8px]"
+            />
+          </div>
+          <Button onClick={handleSubmit} className="w-full justify-center">
+            {t.save}
+          </Button>
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // ROUTES PAGE
+    // ══════════════════════════════════════════════════════════════
+
+    const RoutesPage = ({ t, db, user, dataVersion }) => {
+      const [routes, setRoutes] = React.useState([]);
+      const [showNewRoute, setShowNewRoute] = React.useState(false);
+
+      React.useEffect(() => {
+        const loadRoutes = async () => {
+          const allVisits = await dbGetAll(db, 'visits');
+          const routesList = allVisits.filter(v => v.type === 'route').sort((a, b) => new Date(b.date) - new Date(a.date));
+          setRoutes(routesList);
+        };
+        loadRoutes();
+      }, [db, dataVersion]);
+
+      const handleSaveRoute = async (routeData) => {
+        try {
+          const newRoute = {
+            id: Date.now().toString(),
+            ...routeData,
+            type: 'route',
+            userId: user.id,
+            date: routeData.date || new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString(),
+          };
+          await dbAdd(db, 'visits', newRoute);
+          setRoutes([newRoute, ...routes]);
+          setShowNewRoute(false);
+        } catch (err) {
+          console.error('Failed:', err);
+        }
+      };
+
+      return (
+        <div className="p-4 space-y-4">
+          <Button onClick={() => setShowNewRoute(true)} className="w-full justify-center">
+            <Icon name="plus" size={18} /> {t.newRoute}
+          </Button>
+          {routes.length === 0 ? (
+            <Card className="text-center py-8 text-gray-500">{t.noData}</Card>
+          ) : (
+            routes.map(route => (
+              <Card key={route.id} className="hover:shadow-md">
+                <h3 className="font-bold text-navy">{route.teamMember}</h3>
+                <p className="text-xs text-gray-500 mt-1">{route.date}</p>
+                <p className="text-sm mt-2">{t.totalStops}: <span className="font-bold">{route.stops?.length || 0}</span></p>
+              </Card>
+            ))
+          )}
+          <NewRouteModal isOpen={showNewRoute} onClose={() => setShowNewRoute(false)} onSave={handleSaveRoute} t={t} db={db} />
+        </div>
+      );
+    };
+
+    const NewRouteModal = ({ isOpen, onClose, onSave, t, db }) => {
+      const [formData, setFormData] = React.useState({ date: '', teamMember: '', stops: [] });
+      const [entities, setEntities] = React.useState([]);
+
+      React.useEffect(() => {
+        const loadEntities = async () => {
+          const all = await dbGetAll(db, 'entities');
+          setEntities(all);
+        };
+        loadEntities();
+      }, [db]);
+
+      const handleAddStop = (entityId) => {
+        if (!formData.stops.includes(entityId)) {
+          setFormData({ ...formData, stops: [...formData.stops, entityId] });
+        }
+      };
+
+      const handleSave = () => {
+        if (formData.date && formData.teamMember && formData.stops.length > 0) {
+          onSave(formData);
+          setFormData({ date: '', teamMember: '', stops: [] });
+        }
+      };
+
+      return (
+        <Modal isOpen={isOpen} title={t.newRoute} onClose={onClose} actions={[
+          { label: t.cancel, onClick: onClose, variant: 'secondary' },
+          { label: t.save, onClick: handleSave },
+        ]}>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            <Input label={t.routeDate} type="date" value={formData.date} onChange={(v) => setFormData({ ...formData, date: v })} />
+            <Input label={t.teamMember} value={formData.teamMember} onChange={(v) => setFormData({ ...formData, teamMember: v })} />
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">{t.addStop}</label>
+              {entities.map(e => (
+                <button key={e.id} onClick={() => handleAddStop(e.id)} className="block w-full text-left px-3 py-2 mb-1 rounded border border-gray-200 hover:bg-gray-100">
+                  {e.name} {formData.stops.includes(e.id) && <Icon name="check" size={14} className="inline text-gl" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </Modal>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // CALENDAR PAGE
+    // ══════════════════════════════════════════════════════════════
+
+    const CalendarPage = ({ t, db, user, dataVersion }) => {
+      const [currentDate, setCurrentDate] = React.useState(new Date());
+      const [activities, setActivities] = React.useState({});
+      const [selectedDay, setSelectedDay] = React.useState(null);
+
+      React.useEffect(() => {
+        const loadActivities = async () => {
+          const calls = await dbGetAll(db, 'calls');
+          const visits = await dbGetAll(db, 'visits');
+          const nps = await dbGetAll(db, 'nps');
+          const allEvents = [...calls, ...visits, ...nps];
+          const grouped = {};
+          allEvents.forEach(e => {
+            if (e.date) {
+              grouped[e.date] = (grouped[e.date] || 0) + 1;
+            }
+          });
+          setActivities(grouped);
+        };
+        loadActivities();
+      }, [db, dataVersion]);
+
+      const daysInMonth = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+      const days = Array.from({ length: daysInMonth(currentDate) }, (_, i) => i + 1);
+      const monthName = currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+      const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+      const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+
+      const getDayKey = (day) => {
+        const d = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+        return d.toISOString().split('T')[0];
+      };
+
+      return (
+        <div className="p-4 space-y-4">
+          <div className="flex justify-between items-center mb-4">
+            <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded"><Icon name="arrow_back" size={20} /></button>
+            <h2 className="font-bold text-navy">{monthName}</h2>
+            <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded"><Icon name="arrow_forward" size={20} /></button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 mb-4">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="text-xs font-bold text-center text-gray-600">{d}</div>)}
+            {Array(firstDay).fill(null).map((_, i) => <div key={`empty-${i}`}></div>)}
+            {days.map(day => {
+              const key = getDayKey(day);
+              const count = activities[key];
+              return (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(selectedDay === day ? null : day)}
+                  className={`p-2 rounded text-sm font-medium border ${
+                    selectedDay === day ? 'bg-gl text-white border-gl' : count ? 'bg-blue-50 border-blue-200' : 'border-gray-200'
+                  } hover:bg-gray-100`}
+                >
+                  {day} {count && <div className="text-xs">{count}•</div>}
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedDay && (
+            <Card>
+              <p className="font-bold text-navy mb-2">{t.dayActivities}: {selectedDay}</p>
+              <p className="text-sm text-gray-600">{activities[getDayKey(selectedDay)] || 0} events</p>
+            </Card>
+          )}
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // TEAM MANAGEMENT PAGE
+    // ══════════════════════════════════════════════════════════════
+
+    const TeamManagementPage = ({ t, db, user, dataVersion }) => {
+      const [members, setMembers] = React.useState([]);
+      const [showNewMember, setShowNewMember] = React.useState(false);
+
+      React.useEffect(() => {
+        const loadMembers = async () => {
+          const allUsers = await dbGetAll(db, 'users');
+          setMembers(allUsers);
+        };
+        loadMembers();
+      }, [db, dataVersion]);
+
+      const handleSaveMember = async (memberData) => {
+        try {
+          if (memberData.id) {
+            await dbPut(db, 'users', memberData);
+            setMembers(members.map(m => m.id === memberData.id ? memberData : m));
+          } else {
+            const id = 'user-' + Date.now();
+            const newMember = { ...memberData, id };
+            await dbAdd(db, 'users', newMember);
+            setMembers([newMember, ...members]);
+          }
+          setShowNewMember(false);
+        } catch (err) {
+          console.error('Failed:', err);
+        }
+      };
+
+      return (
+        <div className="p-4 space-y-4">
+          <Button onClick={() => setShowNewMember(true)} className="w-full justify-center">
+            <Icon name="plus" size={18} /> {t.addTeamMember}
+          </Button>
+          {members.length === 0 ? (
+            <Card className="text-center py-8 text-gray-500">{t.noData}</Card>
+          ) : (
+            members.map(member => (
+              <Card key={member.id} className="hover:shadow-md">
+                <h3 className="font-bold text-navy">{member.name}</h3>
+                <p className="text-xs text-gray-500">{member.email}</p>
+                <p className="text-sm mt-2">{t.role}: <span className="font-medium">{member.role}</span></p>
+              </Card>
+            ))
+          )}
+          <TeamMemberModal isOpen={showNewMember} onClose={() => setShowNewMember(false)} onSave={handleSaveMember} t={t} />
+        </div>
+      );
+    };
+
+    const TeamMemberModal = ({ isOpen, onClose, onSave, t }) => {
+      const [formData, setFormData] = React.useState({ name: '', email: '', role: 'employee', color: '#46ac33', phone: '', weeklyGoal: 0 });
+
+      const handleSave = () => {
+        if (formData.name && formData.email) {
+          onSave(formData);
+          setFormData({ name: '', email: '', role: 'employee', color: '#46ac33', phone: '', weeklyGoal: 0 });
+        }
+      };
+
+      return (
+        <Modal isOpen={isOpen} title={t.addTeamMember} onClose={onClose} actions={[
+          { label: t.cancel, onClick: onClose, variant: 'secondary' },
+          { label: t.save, onClick: handleSave },
+        ]}>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            <Input label={t.name} value={formData.name} onChange={(v) => setFormData({ ...formData, name: v })} />
+            <Input label={t.email} type="email" value={formData.email} onChange={(v) => setFormData({ ...formData, email: v })} />
+            <Select label={t.role} value={formData.role} onChange={(v) => setFormData({ ...formData, role: v })} options={['admin', 'employee']} />
+            <Input label={t.phone} value={formData.phone} onChange={(v) => setFormData({ ...formData, phone: v })} />
+            <Input label={t.weeklyGoal} type="number" value={formData.weeklyGoal} onChange={(v) => setFormData({ ...formData, weeklyGoal: parseInt(v) })} />
+          </div>
+        </Modal>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // MORE MENU (Sheet)
+    // ══════════════════════════════════════════════════════════════
+
+    const MoreMenu = ({ isOpen, onClose, onNavigate, t, isAdmin }) => {
+      const moreItems = [
+        { id: 'businesses', label: t.businesses, icon: 'businesses' },
+        { id: 'routes', label: t.routes, icon: 'route' },
+        { id: 'agenda', label: t.agenda, icon: 'agenda' },
+        { id: 'calendar', label: t.calendar, icon: 'calendar' },
+        { id: 'scripts', label: t.scripts, icon: 'script' },
+        { id: 'nps', label: t.nps, icon: 'star' },
+        { id: 'reports', label: t.reports, icon: 'reports' },
+        { id: 'campaigns', label: t.campaigns, icon: 'campaigns' },
+        ...(isAdmin ? [{ id: 'team', label: t.teamManagement, icon: 'team' }] : []),
+      ];
+
+      return (
+        <Sheet isOpen={isOpen} onClose={onClose} title={t.more}>
+          <div className="space-y-2">
+            {moreItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  onNavigate(item.id);
+                  onClose();
+                }}
+                className="w-full text-left px-4 py-3 rounded-[8px] hover:bg-gray-100 font-medium flex items-center gap-3"
+              >
+                <Icon name={item.icon} size={20} className="text-gl" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // NPS MODULE
+    // ══════════════════════════════════════════════════════════════
+
+    const NPSPage = ({ t, db, user, dataVersion }) => {
+      const [surveys, setSurveys] = React.useState([]);
+      const [showNewSurvey, setShowNewSurvey] = React.useState(false);
+      const [stats, setStats] = React.useState({ avg: 0, promoters: 0, passives: 0, detractors: 0, total: 0 });
+
+      React.useEffect(() => {
+        const loadSurveys = async () => {
+          const allSurveys = await dbGetAll(db, 'nps');
+          setSurveys(allSurveys.sort((a, b) => new Date(b.date) - new Date(a.date)));
+
+          const total = allSurveys.length;
+          const avg = total > 0 ? (allSurveys.reduce((sum, s) => sum + s.score, 0) / total).toFixed(1) : 0;
+          const promoters = allSurveys.filter(s => s.score >= 9).length;
+          const passives = allSurveys.filter(s => s.score >= 7 && s.score <= 8).length;
+          const detractors = allSurveys.filter(s => s.score <= 6).length;
+
+          setStats({ avg, promoters, passives, detractors, total });
+        };
+        loadSurveys();
+      }, [db, dataVersion]);
+
+      const handleSaveSurvey = async (surveyData) => {
+        try {
+          const newSurvey = {
+            id: Date.now().toString(),
+            ...surveyData,
+            userId: user.id,
+            date: new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString(),
+            createdBy: user.id,
+          };
+          await dbAdd(db, 'nps', newSurvey);
+          setSurveys([newSurvey, ...surveys]);
+          setShowNewSurvey(false);
+        } catch (err) {
+          console.error('Save failed:', err);
+          alert('Failed to save. Please try again.');
+        }
+      };
+
+      return (
+        <div className="p-4 space-y-4">
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-2">
+            <Card className="text-center">
+              <div className="text-2xl font-bold text-gl">{stats.avg}</div>
+              <p className="text-xs text-gray-600 mt-1">{t.npsAvg}</p>
+            </Card>
+            <Card className="text-center">
+              <div className="text-2xl font-bold text-green-600">{stats.promoters}</div>
+              <p className="text-xs text-gray-600 mt-1">{t.promoters}</p>
+            </Card>
+            <Card className="text-center">
+              <div className="text-2xl font-bold text-amber-600">{stats.passives}</div>
+              <p className="text-xs text-gray-600 mt-1">{t.passives}</p>
+            </Card>
+            <Card className="text-center">
+              <div className="text-2xl font-bold text-red-600">{stats.detractors}</div>
+              <p className="text-xs text-gray-600 mt-1">{t.detractors}</p>
+            </Card>
+          </div>
+
+          <Button onClick={() => setShowNewSurvey(true)} className="w-full justify-center">
+            <Icon name="plus" size={18} /> {t.newSurvey}
+          </Button>
+
+          {surveys.length === 0 ? (
+            <Card className="text-center py-8 text-gray-500">
+              {t.noData}
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {surveys.map(survey => {
+                const variant = survey.score >= 9 ? 'success' : survey.score >= 7 ? 'warning' : 'danger';
+                return (
+                  <Card key={survey.id} className="hover:shadow-md">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-bold text-navy">{survey.entityName}</h3>
+                      <Badge variant={variant}>{survey.score}</Badge>
+                    </div>
+                    <p className="text-xs text-gray-500">{survey.respondent} • {survey.date}</p>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          <NewSurveyModal
+            isOpen={showNewSurvey}
+            onClose={() => setShowNewSurvey(false)}
+            onSave={handleSaveSurvey}
+            t={t}
+          />
+        </div>
+      );
+    };
+
+    const StarRating = ({ value, onChange, label = '' }) => {
+      return (
+        <div className="flex flex-col gap-2">
+          {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map(i => (
+              <button
+                key={i}
+                onClick={() => onChange(i)}
+                className="text-2xl transition hover:scale-110"
+              >
+                {i <= value ? '⭐' : '☆'}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    const NewSurveyModal = ({ isOpen, onClose, onSave, t }) => {
+      const [formData, setFormData] = React.useState({
+        entityName: '',
+        respondent: '',
+        respondentRole: '',
+        score: 5,
+        justification: '',
+        serviceQuality: 3,
+        responseTime: 3,
+        positives: '',
+        negatives: '',
+        suggestions: '',
+        comments: '',
+      });
+
+      const handleSave = () => {
+        if (formData.entityName && formData.respondent && formData.score) {
+          onSave(formData);
+          setFormData({
+            entityName: '', respondent: '', respondentRole: '', score: 5,
+            justification: '', serviceQuality: 3, responseTime: 3,
+            positives: '', negatives: '', suggestions: '', comments: '',
+          });
+        }
+      };
+
+      return (
+        <Modal
+          isOpen={isOpen}
+          title={t.newSurvey}
+          onClose={onClose}
+          actions={[
+            { label: t.cancel, onClick: onClose, variant: 'secondary' },
+            { label: t.save, onClick: handleSave },
+          ]}
+        >
+          <div className="space-y-4 max-h-[75vh] overflow-y-auto">
+            {/* Q1-Q3: Respondent Info */}
+            <Input
+              label={t.entity}
+              value={formData.entityName}
+              onChange={(v) => setFormData({ ...formData, entityName: v })}
+            />
+            <Input
+              label={t.respondent}
+              value={formData.respondent}
+              onChange={(v) => setFormData({ ...formData, respondent: v })}
+            />
+            <Input
+              label={t.respondentRole}
+              value={formData.respondentRole}
+              onChange={(v) => setFormData({ ...formData, respondentRole: v })}
+            />
+
+            {/* Q4: NPS Score */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">{t.npsScore}</label>
+              <div className="flex gap-1 flex-wrap">
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
+                  <button
+                    key={i}
+                    onClick={() => setFormData({ ...formData, score: i })}
+                    className={`w-10 h-10 rounded-lg font-bold transition ${
+                      formData.score === i
+                        ? 'bg-gl text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {i}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Q5: Justification */}
+            <TextArea
+              label={t.justification}
+              value={formData.justification}
+              onChange={(v) => setFormData({ ...formData, justification: v })}
+              rows={2}
+            />
+
+            {/* Q6: Service Quality Rating */}
+            <StarRating
+              label={t.serviceQuality}
+              value={formData.serviceQuality}
+              onChange={(v) => setFormData({ ...formData, serviceQuality: v })}
+            />
+
+            {/* Q7: Response Time Rating */}
+            <StarRating
+              label={t.responseTime}
+              value={formData.responseTime}
+              onChange={(v) => setFormData({ ...formData, responseTime: v })}
+            />
+
+            {/* Q8: Positives */}
+            <TextArea
+              label={t.positives}
+              value={formData.positives}
+              onChange={(v) => setFormData({ ...formData, positives: v })}
+              rows={2}
+            />
+
+            {/* Q9: Negatives */}
+            <TextArea
+              label={t.negatives}
+              value={formData.negatives}
+              onChange={(v) => setFormData({ ...formData, negatives: v })}
+              rows={2}
+            />
+
+            {/* Q10: Suggestions */}
+            <TextArea
+              label={t.suggestions}
+              value={formData.suggestions}
+              onChange={(v) => setFormData({ ...formData, suggestions: v })}
+              rows={2}
+            />
+
+            {/* Q11: Additional Comments */}
+            <TextArea
+              label={t.additionalComments}
+              value={formData.comments}
+              onChange={(v) => setFormData({ ...formData, comments: v })}
+              rows={2}
+            />
+          </div>
+        </Modal>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // REPORTS MODULE
+    // ══════════════════════════════════════════════════════════════
+
+    const ReportsPage = ({ t, db, user, isAdmin, dataVersion }) => {
+      const [period, setPeriod] = React.useState('thisMonth');
+      const [stats, setStats] = React.useState({
+        totalEntities: 0,
+        totalCalls: 0,
+        totalVisits: 0,
+      });
+      const [chartsData, setChartsData] = React.useState({
+        callsByMonth: [],
+        visitsByMonth: [],
+        topClinics: [],
+        npsTrend: [],
+      });
+      const [benchmarks, setBenchmarks] = React.useState({
+        callsChange: 0,
+        visitsChange: 0,
+        npsChange: 0,
+        clinicsAdded: 0,
+      });
+
+      React.useEffect(() => {
+        const loadReports = async () => {
+          const entities = await dbGetAll(db, 'entities');
+          const calls = await dbGetAll(db, 'calls');
+          const visits = await dbGetAll(db, 'visits');
+          const npsData = await dbGetAll(db, 'nps');
+
+          setStats({
+            totalEntities: entities.length,
+            totalCalls: calls.length,
+            totalVisits: visits.length,
+          });
+
+          // Build 6-month charts
+          const now = new Date();
+          const months = [];
+          for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const label = d.toLocaleDateString('default', { month: 'short' });
+            const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
+            const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+            const callsInMonth = calls.filter(c => {
+              const cd = new Date(c.date);
+              return cd >= monthStart && cd <= monthEnd;
+            }).length;
+            const visitsInMonth = visits.filter(v => {
+              const vd = new Date(v.date);
+              return vd >= monthStart && vd <= monthEnd;
+            }).length;
+            months.push({ label, calls: callsInMonth, visits: visitsInMonth });
+          }
+
+          // Top clinics by visits
+          const visitsByClinic = {};
+          visits.forEach(v => {
+            visitsByClinic[v.entityName] = (visitsByClinic[v.entityName] || 0) + 1;
+          });
+          const topClinics = Object.entries(visitsByClinic)
+            .map(([name, count]) => ({ label: name.substring(0, 12), value: count, color: '#46ac33' }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5);
+
+          // NPS trend (simple 6-month average)
+          const npsByMonth = [];
+          for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
+            const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+            const npsInMonth = npsData.filter(n => {
+              const nd = new Date(n.createdAt || new Date());
+              return nd >= monthStart && nd <= monthEnd;
+            });
+            const avg = npsInMonth.length > 0
+              ? (npsInMonth.reduce((sum, n) => sum + n.score, 0) / npsInMonth.length).toFixed(1)
+              : 0;
+            npsByMonth.push({
+              label: d.toLocaleDateString('default', { month: 'short' }),
+              value: parseFloat(avg) || 0,
+              color: parseFloat(avg) >= 7 ? '#46ac33' : '#f59e0b'
+            });
+          }
+
+          setChartsData({
+            callsByMonth: months.map(m => ({ label: m.label, value: m.calls, color: '#3b82f6' })),
+            visitsByMonth: months.map(m => ({ label: m.label, value: m.visits, color: '#10b981' })),
+            topClinics,
+            npsTrend: npsByMonth,
+          });
+
+          // Benchmarks: compare this month vs last month
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+          const callsThisMonth = calls.filter(c => new Date(c.date) >= monthStart).length;
+          const callsLastMonth = calls.filter(c => {
+            const cd = new Date(c.date);
+            return cd >= lastMonthStart && cd <= lastMonthEnd;
+          }).length;
+
+          const visitsThisMonth = visits.filter(v => new Date(v.date) >= monthStart).length;
+          const visitsLastMonth = visits.filter(v => {
+            const vd = new Date(v.date);
+            return vd >= lastMonthStart && vd <= lastMonthEnd;
+          }).length;
+
+          const clinicsThisMonth = entities.filter(e =>
+            e.type === 'clinic' && new Date(e.createdAt) >= monthStart
+          ).length;
+          const clinicsLastMonth = entities.filter(e =>
+            e.type === 'clinic' && new Date(e.createdAt) >= lastMonthStart && new Date(e.createdAt) <= lastMonthEnd
+          ).length;
+
+          const npsThisMonth = npsData.filter(n => new Date(n.createdAt || new Date()) >= monthStart);
+          const npsLastMonth = npsData.filter(n => {
+            const nd = new Date(n.createdAt || new Date());
+            return nd >= lastMonthStart && nd <= lastMonthEnd;
+          });
+          const npsAvgThis = npsThisMonth.length > 0
+            ? (npsThisMonth.reduce((sum, n) => sum + n.score, 0) / npsThisMonth.length).toFixed(1)
+            : 0;
+          const npsAvgLast = npsLastMonth.length > 0
+            ? (npsLastMonth.reduce((sum, n) => sum + n.score, 0) / npsLastMonth.length).toFixed(1)
+            : 0;
+
+          setBenchmarks({
+            callsChange: callsThisMonth - callsLastMonth,
+            visitsChange: visitsThisMonth - visitsLastMonth,
+            npsChange: (parseFloat(npsAvgThis) - parseFloat(npsAvgLast)).toFixed(1),
+            clinicsAdded: clinicsThisMonth,
+          });
+        };
+
+        loadReports();
+      }, [db, dataVersion]);
+
+      // Show basic reports to all users, detailed to admin only
+      return (
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="text-center">
+              <div className="text-3xl font-bold text-navy">{stats.totalEntities || 0}</div>
+              <p className="text-xs text-gray-600 mt-1">{t.totalClinics}</p>
+            </Card>
+            <Card className="text-center">
+              <div className="text-3xl font-bold text-navy">{stats.totalCalls || 0}</div>
+              <p className="text-xs text-gray-600 mt-1">{t.callsThisMonth}</p>
+            </Card>
+            <Card className="text-center">
+              <div className="text-3xl font-bold text-navy">{stats.totalVisits || 0}</div>
+              <p className="text-xs text-gray-600 mt-1">{t.visitsThisMonth}</p>
+            </Card>
+          </div>
+
+          {isAdmin && (
+            <>
+              {/* Benchmarks */}
+              <Card className="bg-amber-50 border border-amber-200">
+                <h3 className="font-bold text-navy mb-3">{t.benchmarks}</h3>
+                <p className="text-xs text-gray-600 mb-2">{t.lastMonthComparison}</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex items-center gap-2 p-2 bg-white rounded border border-amber-100">
+                    <Icon name={benchmarks.callsChange >= 0 ? 'trendUp' : 'trendDown'} size={16}
+                      className={benchmarks.callsChange >= 0 ? 'text-green-600' : 'text-red-600'} />
+                    <div>
+                      <p className="text-gray-600 text-xs">📞 Calls</p>
+                      <p className="font-bold">{benchmarks.callsChange >= 0 ? '+' : ''}{benchmarks.callsChange}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 bg-white rounded border border-amber-100">
+                    <Icon name={benchmarks.visitsChange >= 0 ? 'trendUp' : 'trendDown'} size={16}
+                      className={benchmarks.visitsChange >= 0 ? 'text-green-600' : 'text-red-600'} />
+                    <div>
+                      <p className="text-gray-600 text-xs">📍 Visits</p>
+                      <p className="font-bold">{benchmarks.visitsChange >= 0 ? '+' : ''}{benchmarks.visitsChange}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 bg-white rounded border border-amber-100">
+                    <Icon name={benchmarks.npsChange >= 0 ? 'trendUp' : 'trendDown'} size={16}
+                      className={benchmarks.npsChange >= 0 ? 'text-green-600' : 'text-red-600'} />
+                    <div>
+                      <p className="text-gray-600 text-xs">⭐ NPS</p>
+                      <p className="font-bold">{benchmarks.npsChange >= 0 ? '+' : ''}{benchmarks.npsChange}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 bg-white rounded border border-amber-100">
+                    <Icon name="plus" size={16} className="text-blue-600" />
+                    <div>
+                      <p className="text-gray-600 text-xs">🏥 New Clinics</p>
+                      <p className="font-bold">{benchmarks.clinicsAdded}</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Charts */}
+              <Card>
+                <h3 className="font-bold text-navy mb-3">{t.monthlyChart}</h3>
+                <p className="text-xs text-gray-600 mb-3">📞 Calls</p>
+                <BarChart data={chartsData.callsByMonth} />
+              </Card>
+
+              <Card>
+                <h3 className="font-bold text-navy mb-3">{t.monthlyChart}</h3>
+                <p className="text-xs text-gray-600 mb-3">📍 Visits</p>
+                <BarChart data={chartsData.visitsByMonth} />
+              </Card>
+
+              {chartsData.topClinics.length > 0 && (
+                <Card>
+                  <h3 className="font-bold text-navy mb-3">{t.topClinicsByVisits}</h3>
+                  <BarChart data={chartsData.topClinics} maxValue={Math.max(...chartsData.topClinics.map(c => c.value))} height={120} />
+                </Card>
+              )}
+
+              {chartsData.npsTrend.length > 0 && (
+                <Card>
+                  <h3 className="font-bold text-navy mb-3">{t.npsAvgTrend}</h3>
+                  <BarChart data={chartsData.npsTrend} maxValue={10} height={120} />
+                </Card>
+              )}
+            </>
+          )}
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // CAMPAIGNS MODULE
+    // ══════════════════════════════════════════════════════════════
+
+    const CampaignsPage = ({ t, dataVersion }) => {
+      return (
+        <div className="p-4 space-y-4">
+          {CAMPAIGNS.map(campaign => (
+            <Card key={campaign.id} className="hover:shadow-md">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-navy">{campaign.name}</h3>
+                <Badge variant="navy">{campaign.type}</Badge>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">{campaign.objective}</p>
+              <p className="text-xs text-gray-500">📅 {campaign.week}</p>
+            </Card>
+          ))}
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // SETTINGS PAGE
+    // ══════════════════════════════════════════════════════════════
+
+    const SettingsPage = ({ t, user, db, dataVersion }) => {
+      const [claudeKey, setClaudeKey] = React.useState(localStorage.getItem('claude_key') || '');
+      const [openaiKey, setOpenaiKey] = React.useState(localStorage.getItem('openai_key') || '');
+      const toast = useToast();
+      const [importFile, setImportFile] = React.useState(null);
+
+      const handleSaveKeys = () => {
+        localStorage.setItem('claude_key', claudeKey);
+        localStorage.setItem('openai_key', openaiKey);
+        toast?.show?.('API Keys saved!', 'success');
+      };
+
+      const handleExportJson = async () => {
+        try {
+          const stores = ['entities', 'calls', 'visits', 'nps', 'routes', 'chatSessions'];
+          const data = {};
+          for (const store of stores) {
+            data[store] = await dbGetAll(db, store);
+          }
+          const json = JSON.stringify(data, null, 2);
+          const blob = new Blob([json], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'gl-comercial-export-' + new Date().toISOString().split('T')[0] + '.json';
+          a.click();
+          URL.revokeObjectURL(url);
+          toast?.show?.('Data exported as JSON', 'success');
+        } catch (err) {
+          toast?.show?.('Export failed: ' + err.message, 'error');
+        }
+      };
+
+      const handleExportCsv = async () => {
+        try {
+          const entities = await dbGetAll(db, 'entities');
+          const clinics = entities.filter(e => e.type === 'clinic');
+          const rows = [['Name', 'Region', 'Status', 'Phone', 'Email', 'Address']];
+          clinics.forEach(c => {
+            rows.push([c.name, c.region, c.clientStatus, c.phone, c.email, c.address]);
+          });
+          const csv = rows.map(r => r.map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'gl-clinics-' + new Date().toISOString().split('T')[0] + '.csv';
+          a.click();
+          URL.revokeObjectURL(url);
+          toast?.show?.('Clinics exported as CSV', 'success');
+        } catch (err) {
+          toast?.show?.('Export failed: ' + err.message, 'error');
+        }
+      };
+
+      const handleImportJson = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          const stores = ['entities', 'calls', 'visits', 'nps', 'routes', 'chatSessions'];
+          for (const store of stores) {
+            if (data[store] && Array.isArray(data[store])) {
+              for (const item of data[store]) {
+                await dbPut(db, store, item);
+              }
+            }
+          }
+          toast?.show?.('Data imported successfully', 'success');
+          setImportFile(null);
+        } catch (err) {
+          toast?.show?.('Import failed: ' + err.message, 'error');
+        }
+      };
+
+      return (
+        <div className="p-4 space-y-4">
+          <h2 className="text-lg font-bold text-navy">{t.apiKeys}</h2>
+          <Input
+            label={t.claudeApiKey}
+            value={claudeKey}
+            onChange={setClaudeKey}
+            type="password"
+            placeholder="sk-ant-..."
+          />
+          <Input
+            label={t.openaiApiKey}
+            value={openaiKey}
+            onChange={setOpenaiKey}
+            type="password"
+            placeholder="sk-..."
+          />
+          <Button onClick={handleSaveKeys} className="w-full justify-center">
+            {t.save}
+          </Button>
+
+          <div className="border-t pt-4">
+            <h2 className="text-lg font-bold text-navy mb-4">{t.exportData}</h2>
+            <div className="space-y-2">
+              <Button onClick={handleExportJson} className="w-full justify-center">
+                <Icon name="download" size={16} /> {t.exportJson}
+              </Button>
+              <Button onClick={handleExportCsv} className="w-full justify-center">
+                <Icon name="download" size={16} /> {t.exportCsv}
+              </Button>
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <h2 className="text-lg font-bold text-navy mb-4">{t.importData}</h2>
+            <div className="flex gap-2">
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleImportJson}
+                id="jsonImport"
+                style={{display: 'none'}}
+              />
+              <Button onClick={() => document.getElementById('jsonImport').click()} className="flex-1 justify-center">
+                <Icon name="upload" size={16} /> {t.importJson}
+              </Button>
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <h2 className="text-lg font-bold text-navy mb-4">{t.userInfo}</h2>
+            <Card>
+              <p className="text-sm text-gray-600">{t.name}</p>
+              <p className="font-medium">{user.name}</p>
+              <p className="text-sm text-gray-600 mt-2">{t.email}</p>
+              <p className="font-medium">{user.email}</p>
+            </Card>
+          </div>
+        </div>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // AI CHAT OVERLAY
+    // ══════════════════════════════════════════════════════════════
+
+    const AIChat = ({ isOpen, onClose, t, user, currentModule }) => {
+      const [messages, setMessages] = React.useState([]);
+      const [input, setInput] = React.useState('');
+      const [loading, setLoading] = React.useState(false);
+      const [model, setModel] = React.useState('claude');
+
+      const handleSend = async () => {
+        if (!input.trim()) return;
+
+        const userMessage = { role: 'user', content: input };
+        setMessages([...messages, userMessage]);
+        setInput('');
+        setLoading(true);
+
+        try {
+          const systemPrompt = `You are an AI commercial assistant for Greenlight Pet ER, a 24/7 emergency veterinary hospital. User: ${user.name}, Module: ${currentModule}.
+
+GREENLIGHT PET ER — Services & Competitive Advantages:
+- 24/7 Emergency Surgery & Trauma Care with state-of-the-art equipment
+- Specialized departments: Surgery, Orthopedics, Dentistry, Internal Medicine, Oncology
+- Advanced diagnostics: Digital radiology, ultrasound, laboratory services
+- Dedicated emergency response team available at all times
+- Partnerships with local clinics for referrals and co-management
+- Dedicated support line for partner clinics
+
+PRICING TIERS:
+- Basic Partnership: Referral network access, 15% discount for partner's clients
+- Premium Partnership: Dedicated support line, custom SLA, 20% discount, marketing materials
+- Elite Partnership: Everything above + quarterly business reviews, preferred pricing on special procedures
+
+COMMON OBJECTIONS & REBUTTALS:
+1. "We already have an emergency service" → Suggest coexistence model: GL for complex cases, leverage GL's specializations
+2. "Price is too high" → Emphasize quality, reduced liability, better client outcomes, long-term cost savings
+3. "Don't have volume for partnership" → Flexible minimum volumes, start small and scale
+4. "Concerned about client relationships" → GL enhances clinic's reputation, improves client retention
+
+COMMERCIAL TACTICS:
+- Frame partnerships as "expanding clinic capabilities" not replacing services
+- Highlight client satisfaction through advanced care
+- Offer pilot programs (30-day trial partnerships)
+- Focus on mutual growth and client welfare
+- Use testimonials from existing partners
+
+Help the user with call strategies, follow-ups, objection handling, partnership proposals, and NPS insights.`;
+
+          let response = '';
+
+          const claudeKey = localStorage.getItem('claude_key');
+          if (model === 'claude' && claudeKey) {
+            response = 'Claude API response would appear here (requires CORS-enabled API or backend proxy).';
+          } else {
+            response = 'Demo response: How can I assist you with your commercial activities?';
+          }
+
+          setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+        } catch (err) {
+          setMessages(prev => [...prev, { role: 'assistant', content: 'Error: ' + err.message }]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <>
+          <div className="modal-overlay" onClick={onClose}></div>
+          <Sheet isOpen={isOpen} onClose={onClose} title={t.aiAssist}>
+            <div className="flex flex-col gap-4 h-[60vh]">
+              {/* Model selector */}
+              <Select
+                label="Model"
+                value={model}
+                onChange={setModel}
+                options={['claude', 'openai']}
+              />
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto space-y-3 border-t pt-3">
+                {messages.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">{t.typeMessage}</p>
+                ) : (
+                  messages.map((msg, i) => (
+                    <div
+                      key={`${msg.role}-${i}`}
+                      className={`p-3 rounded-[8px] text-sm ${
+                        msg.role === 'user'
+                          ? 'bg-gl text-white ml-8'
+                          : 'bg-gray-100 text-gray-900 mr-8'
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
+                  ))
+                )}
+                {loading && <p className="text-xs text-gray-500 text-center">Thinking...</p>}
+              </div>
+
+              {/* Input */}
+              <div className="flex gap-2 border-t pt-3">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                  placeholder={t.typeMessage}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-[8px]"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={loading}
+                  className="px-4 py-2 bg-gl text-white rounded-[8px] hover:bg-gl-dark"
+                >
+                  <Icon name="send" size={18} />
+                </button>
+              </div>
+            </div>
+          </Sheet>
+        </>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // MAIN APP COMPONENT
+    // ══════════════════════════════════════════════════════════════
+
+    const App = () => {
+      const [lang, setLang] = React.useState(() => localStorage.getItem('lang') || 'pt');
+      const [user, setUser] = React.useState(null);
+      const [db, setDb] = React.useState(null);
+      const [activeTab, setActiveTab] = React.useState('home');
+      const [menuOpen, setMenuOpen] = React.useState(false);
+      const [aiOpen, setAiOpen] = React.useState(false);
+      const [moreOpen, setMoreOpen] = React.useState(false);
+      const [isOnline, setIsOnline] = React.useState(navigator.onLine);
+      const [showNewCall, setShowNewCall] = React.useState(false);
+      const [showNewVisit, setShowNewVisit] = React.useState(false);
+      const [showNewSurvey, setShowNewSurvey] = React.useState(false);
+      const [showNewClinic, setShowNewClinic] = React.useState(false);
+      const [dataVersion, setDataVersion] = React.useState(0);
+
+      const t = translations[lang];
+
+      // Initialize DB and load default users
+      React.useEffect(() => {
+        const setupDB = async () => {
+          const database = await initDB();
+          setDb(database);
+
+          const existingUsers = await dbGetAll(database, 'users');
+          if (existingUsers.length === 0) {
+            const defaultUsers = [
+              { id: 'admin1', name: 'Vinicius', email: 'vm@glpethospital.com', role: 'admin', unit: 'jax' },
+              { id: 'emp1', name: 'Sales Rep', email: 'rep@glpethospital.com', role: 'employee', unit: 'jax' },
+            ];
+            for (const user of defaultUsers) {
+              const passwordHash = await hashPassword('gl2026');
+              await dbPut(database, 'users', { ...user, password: passwordHash });
+            }
+          }
+        };
+        setupDB();
+      }, []);
+
+      React.useEffect(() => {
+        localStorage.setItem('lang', lang);
+      }, [lang]);
+
+      // Session timeout (30 min)
+      React.useEffect(() => {
+        if (!user) return;
+        let timeout;
+        const resetTimer = () => {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            localStorage.removeItem('claude_key');
+            localStorage.removeItem('openai_key');
+            setUser(null);
+          }, 30 * 60 * 1000);
+        };
+        const events = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+        events.forEach(e => document.addEventListener(e, resetTimer));
+        resetTimer();
+        return () => {
+          clearTimeout(timeout);
+          events.forEach(e => document.removeEventListener(e, resetTimer));
+        };
+      }, [user]);
+
+      // Network status
+      React.useEffect(() => {
+        const goOnline = () => setIsOnline(true);
+        const goOffline = () => setIsOnline(false);
+        window.addEventListener('online', goOnline);
+        window.addEventListener('offline', goOffline);
+        return () => {
+          window.removeEventListener('online', goOnline);
+          window.removeEventListener('offline', goOffline);
+        };
+      }, []);
+
+      if (!db) return (
+        <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gl border-t-transparent"></div>
+          <p className="text-navy font-medium">GL.COMERCIAL v2.0</p>
+          <p className="text-sm text-gray-500">Initializing...</p>
+        </div>
+      );
+      if (!user) return (
+        <LangContext.Provider value={{ t, lang, setLang }}>
+          <ToastProvider>
+            <LoginScreen onLogin={setUser} db={db} />
+          </ToastProvider>
+        </LangContext.Provider>
+      );
+
+      const pageTitle = {
+        home: t.home,
+        calls: t.calls,
+        clinics: t.clinics,
+        businesses: t.businesses,
+        visits: t.visits,
+        routes: t.routes,
+        calendar: t.calendar,
+        team: t.teamManagement,
+        agenda: t.agenda,
+        scripts: t.scripts,
+        nps: t.nps,
+        reports: t.reports,
+        campaigns: t.campaigns,
+        manager: t.manager,
+      }[activeTab] || t.home;
+
+      return (
+        <LangContext.Provider value={{ t, lang, setLang }}>
+          <ToastProvider>
+            <div className="bg-gray-50 min-h-screen flex flex-col">
+              <TopBar
+                title={pageTitle}
+                onMenuClick={() => setMenuOpen(true)}
+                onAIClick={() => setAiOpen(true)}
+                lang={lang}
+                setLang={setLang}
+                isOnline={isOnline}
+              />
+
+              <div className="flex-1 overflow-y-auto pb-20">
+                {activeTab === 'home' && <HomePage t={t} db={db} user={user} lang={lang} dataVersion={dataVersion} />}
+                {activeTab === 'calls' && <CallsPage t={t} db={db} user={user} dataVersion={dataVersion} />}
+                {activeTab === 'clinics' && <ClinicsPage t={t} db={db} user={user} dataVersion={dataVersion} />}
+                {activeTab === 'businesses' && <BusinessesPage t={t} db={db} user={user} dataVersion={dataVersion} />}
+                {activeTab === 'visits' && <VisitsPage t={t} db={db} user={user} dataVersion={dataVersion} />}
+                {activeTab === 'routes' && <RoutesPage t={t} db={db} user={user} dataVersion={dataVersion} />}
+                {activeTab === 'calendar' && <CalendarPage t={t} db={db} user={user} dataVersion={dataVersion} />}
+                {activeTab === 'team' && <TeamManagementPage t={t} db={db} user={user} dataVersion={dataVersion} />}
+                {activeTab === 'agenda' && <CalendarPage t={t} db={db} user={user} dataVersion={dataVersion} />}
+                {activeTab === 'scripts' && <SalesScriptsPage t={t} db={db} user={user} dataVersion={dataVersion} />}
+                {activeTab === 'nps' && <NPSPage t={t} db={db} user={user} dataVersion={dataVersion} />}
+                {activeTab === 'reports' && <ReportsPage t={t} db={db} user={user} isAdmin={user.role === 'admin'} dataVersion={dataVersion} />}
+                {activeTab === 'campaigns' && <CampaignsPage t={t} dataVersion={dataVersion} />}
+                {activeTab === 'settings' && <SettingsPage t={t} user={user} db={db} dataVersion={dataVersion} />}
+              </div>
+
+              <BottomNav activeTab={activeTab} onTabChange={(tab) => {
+                if (tab === 'more') {
+                  setMoreOpen(true);
+                } else {
+                  setActiveTab(tab);
+                }
+              }} />
+
+              <QuickActionsFAB
+                onNewCall={() => setShowNewCall(true)}
+                onNewVisit={() => setShowNewVisit(true)}
+                onNewSurvey={() => setShowNewSurvey(true)}
+                onNewClinic={() => setShowNewClinic(true)}
+                t={t}
+              />
+
+              {/* FAB-triggered modals */}
+              <NewCallModal
+                isOpen={showNewCall}
+                onClose={() => setShowNewCall(false)}
+                onSave={async (data) => {
+                  const newCall = { id: Date.now().toString(), ...data, userId: user.id, date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() };
+                  await dbAdd(db, 'calls', newCall);
+                  setDataVersion(v => v + 1);
+                  setShowNewCall(false);
+                }}
+                t={t}
+                db={db}
+              />
+              <NewVisitModal
+                isOpen={showNewVisit}
+                onClose={() => setShowNewVisit(false)}
+                onSave={async (data) => {
+                  const newVisit = { id: Date.now().toString(), ...data, userId: user.id, date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() };
+                  await dbAdd(db, 'visits', newVisit);
+                  setDataVersion(v => v + 1);
+                  setShowNewVisit(false);
+                }}
+                t={t}
+              />
+              <NewSurveyModal
+                isOpen={showNewSurvey}
+                onClose={() => setShowNewSurvey(false)}
+                onSave={async (data) => {
+                  const newSurvey = { id: Date.now().toString(), ...data, userId: user.id, date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() };
+                  await dbAdd(db, 'nps', newSurvey);
+                  setDataVersion(v => v + 1);
+                  setShowNewSurvey(false);
+                }}
+                t={t}
+              />
+              <NewClinicModal
+                isOpen={showNewClinic}
+                onClose={() => setShowNewClinic(false)}
+                onSave={async (data) => {
+                  const newClinic = { id: Date.now().toString(), type: 'clinic', ...data, createdAt: new Date().toISOString(), createdBy: user.id };
+                  await dbAdd(db, 'entities', newClinic);
+                  setDataVersion(v => v + 1);
+                  setShowNewClinic(false);
+                }}
+                t={t}
+              />
+
+              <SideDrawer
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                user={user}
+                onLogout={() => {
+                  localStorage.removeItem('claude_key');
+                  localStorage.removeItem('openai_key');
+                  setUser(null);
+                }}
+                isAdmin={user.role === 'admin'}
+                onNavigate={(tab) => setActiveTab(tab)}
+              />
+
+              <MoreMenu
+                isOpen={moreOpen}
+                onClose={() => setMoreOpen(false)}
+                onNavigate={(tab) => setActiveTab(tab)}
+                t={t}
+                isAdmin={user.role === 'admin'}
+              />
+
+              <AIChat
+                isOpen={aiOpen}
+                onClose={() => setAiOpen(false)}
+                t={t}
+                user={user}
+                currentModule={activeTab}
+              />
+            </div>
+          </ToastProvider>
+        </LangContext.Provider>
+      );
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    // RENDER
+    // ══════════════════════════════════════════════════════════════
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ErrorBoundary><App /></ErrorBoundary>);
+  </script>
+</body>
+</html>
